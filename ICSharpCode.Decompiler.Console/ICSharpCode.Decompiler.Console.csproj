@@ -21,6 +21,7 @@
     <FileVersion>7.0.0.0</FileVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>ILSpy Team</Authors>
+    <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -57,5 +58,9 @@
     <PackageReference Include="System.Text.Encoding.Extensions" Version="4.3.0" />
     <PackageReference Include="Mono.Cecil" Version="$(MonoCecilVersion)" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(InstallDir)' != ''">
+    <Exec Command="&quot;$(ProjectDir)install.cmd&quot; &quot;$(TargetDir)publish&quot; &quot;$(InstallDir)&quot;" />
+  </Target>
 
 </Project>
