@@ -3,6 +3,7 @@ obj/
 AppPackages/
 BundleArtifacts/
 /ICSharpCode.Decompiler/Properties/AssemblyInfo.cs
+/ICSharpCode.Decompiler.Console/Properties/launchSettings.json
 /ILSpy/Properties/AssemblyInfo.cs
 /ILSpy/app.config
 *.user
