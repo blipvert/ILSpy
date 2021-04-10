@@ -1606,14 +1606,20 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				else
 				{
 					bool first = true;
+					bool lastWasField = false;
 					foreach (var member in typeDeclaration.Members)
 					{
+						bool isField = member.SymbolKind == SymbolKind.Field;
 						if (!first)
 						{
-							for (int i = 0; i < policy.MinimumBlankLinesBetweenMembers; i++)
+							int minBlank = policy.MinimumBlankLinesBetweenMembers;
+							if (lastWasField && isField)
+								minBlank = policy.MinimumBlankLinesBetweenFields;
+							for (int i = 0; i < minBlank; i++)
 								NewLine();
 						}
 						first = false;
+						lastWasField = isField;
 						member.AcceptVisitor(this);
 					}
 				}
