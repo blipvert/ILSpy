@@ -44,6 +44,9 @@ Remarks:
 		[Option("-t|--type <type-name>", "The fully qualified name of the type to decompile.", CommandOptionType.SingleValue)]
 		public string TypeName { get; }
 
+		[Option("-n|--project-name <project-name>", "Override the name of the project produced.", CommandOptionType.SingleValue)]
+		public string ProjectName { get; }
+
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
 
@@ -83,7 +86,7 @@ Remarks:
 
 			try {
 				if (CreateCompilableProjectFlag) {
-					return DecompileAsProject(InputAssemblyName, OutputDirectory);
+					return DecompileAsProject(InputAssemblyName, OutputDirectory, ProjectName);
 				} else if (EntityTypes.Any()) {
 					var values = EntityTypes.SelectMany(v => v.Split(',', ';')).ToArray();
 					HashSet<TypeKind> kinds = TypesParser.ParseSelection(values);
@@ -181,7 +184,7 @@ Remarks:
 			return 0;
 		}
 
-		int DecompileAsProject(string assemblyFileName, string outputDirectory)
+		int DecompileAsProject(string assemblyFileName, string outputDirectory, string projectName = null)
 		{
 			var module = new PEFile(assemblyFileName);
 			var resolver = new UniversalAssemblyResolver(assemblyFileName, false, module.Reader.DetectTargetFrameworkId());
@@ -189,7 +192,7 @@ Remarks:
 				resolver.AddSearchDirectory(path);
 			}
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
-			decompiler.DecompileProject(module, outputDirectory);
+			decompiler.DecompileNamedProject(module, outputDirectory, projectName);
 			return 0;
 		}
 
