@@ -14,8 +14,12 @@ namespace ICSharpCode.Decompiler.Console
 		protected override ValidationResult IsValid(object value, ValidationContext context)
 		{
 			if (value is ILSpyCmdProgram obj) {
-				if (obj.CreateCompilableProjectFlag && string.IsNullOrEmpty(obj.OutputDirectory)) {
-					return new ValidationResult("--project cannot be used unless --outputdir is also specified");
+				if (obj.CreateCompilableProjectFlag) {
+					if (string.IsNullOrEmpty(obj.OutputDirectory))
+					{
+						return new ValidationResult("--project cannot be used unless --outputdir is also specified");
+					}
+					System.IO.Directory.CreateDirectory(obj.OutputDirectory);
 				}
 			}
 			return ValidationResult.Success;
