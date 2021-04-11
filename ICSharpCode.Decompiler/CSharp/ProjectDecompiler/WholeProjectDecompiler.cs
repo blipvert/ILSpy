@@ -131,7 +131,13 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 
 		public void DecompileProject(PEFile moduleDefinition, string targetDirectory, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			string projectFileName = Path.Combine(targetDirectory, CleanUpFileName(moduleDefinition.Name) + ".csproj");
+			DecompileNamedProject(moduleDefinition, targetDirectory, null, cancellationToken);
+		}
+
+		public void DecompileNamedProject(PEFile moduleDefinition, string targetDirectory, string moduleName, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			string projectFileName = Path.Combine(targetDirectory,
+				CleanUpFileName(string.IsNullOrEmpty(moduleName) ? moduleDefinition.Name : moduleName) + ".csproj");
 			using (var writer = new StreamWriter(projectFileName))
 			{
 				DecompileProject(moduleDefinition, targetDirectory, writer, cancellationToken);
