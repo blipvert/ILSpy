@@ -99,10 +99,11 @@ Remarks:
 				} else if (ShowILCodeFlag || ShowILSequencePointsFlag) {
 					if (outputDirectorySpecified) {
 						string outputName = Path.GetFileNameWithoutExtension(InputAssemblyName);
-						output = File.CreateText(Path.Combine(OutputDirectory, outputName) + ".il");
+						output = File.CreateText(Path.Combine(OutputDirectory,
+							(string.IsNullOrEmpty(TypeName) ? outputName : TypeName)) + ".il");
 					}
 
-					return ShowIL(InputAssemblyName, output);
+					return ShowIL(InputAssemblyName, output, TypeName);
 				} else if (CreateDebugInfoFlag) {
 					string pdbFileName = null;
 					if (outputDirectorySpecified) {
@@ -171,7 +172,7 @@ Remarks:
 			return 0;
 		}
 
-		int ShowIL(string assemblyFileName, TextWriter output)
+		int ShowIL(string assemblyFileName, TextWriter output, string typeName = null)
 		{
 			var module = new PEFile(assemblyFileName);
 			output.WriteLine($"// IL code: {module.Name}");
@@ -180,7 +181,7 @@ Remarks:
 				DebugInfo = TryLoadPDB(module),
 				ShowSequencePoints = ShowILSequencePointsFlag,
 			};
-			disassembler.WriteModuleContents(module);
+			disassembler.WriteModuleContents(module, typeName);
 			return 0;
 		}
 

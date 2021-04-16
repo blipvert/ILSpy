@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2011 AlphaSierraPapa for the SharpDevelop Team
+// Copyright (c) 2011 AlphaSierraPapa for the SharpDevelop Team
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -2030,12 +2030,15 @@ namespace ICSharpCode.Decompiler.Disassembler
 			WriteAttributes(module, metadata.GetCustomAttributes(EntityHandle.ModuleDefinition));
 		}
 
-		public void WriteModuleContents(PEFile module)
+		public void WriteModuleContents(PEFile module, string typeName = null)
 		{
 			foreach (var handle in module.Metadata.GetTopLevelTypeDefinitions())
 			{
-				DisassembleType(module, handle);
-				output.WriteLine();
+				if (typeName == null || typeName == module.Metadata.GetTypeDefinition(handle).GetFullTypeName(module.Metadata).ToILNameString(true))
+				{
+					DisassembleType(module, handle);
+					output.WriteLine();
+				}
 			}
 		}
 	}
