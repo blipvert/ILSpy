@@ -121,6 +121,45 @@ namespace ICSharpCode.Decompiler.TypeSystem.Implementation
 		}
 	}
 
+#if true
+    // FIXME: Clean this up
+	class FakeProperty : FakeMember, IProperty
+    {
+		readonly IMethod getter;
+		readonly IMethod setter;
+		readonly IProperty iprop;
+
+		public FakeProperty(ICompilation compilation, IProperty iprop, IMethod getter, IMethod setter = null) : base(compilation)
+		{
+			this.iprop = iprop;
+			this.getter = getter;
+			this.setter = setter;
+			this.Name = iprop.Name;
+			this.ReturnType = iprop.ReturnType;
+		}
+
+		bool IProperty.CanGet => getter != null;
+		bool IProperty.CanSet => setter != null;
+		IMethod IProperty.Getter => getter;
+		IMethod IProperty.Setter => setter;
+		bool IProperty.IsIndexer => false;
+		bool IProperty.ReturnTypeIsRefReadOnly => iprop.ReturnTypeIsRefReadOnly;
+		IEnumerable<IMember> IMember.ExplicitlyImplementedInterfaceMembers { get { yield return iprop; } }
+		bool IMember.IsExplicitInterfaceImplementation => true;
+
+		IReadOnlyList<IParameter> IParameterizedMember.Parameters => EmptyList<IParameter>.Instance;
+		IType IEntity.DeclaringType => getter.DeclaringType;
+		ITypeDefinition IEntity.DeclaringTypeDefinition => getter.DeclaringTypeDefinition;
+
+		public override SymbolKind SymbolKind => SymbolKind.Property;
+
+		public override IMember Specialize(TypeParameterSubstitution substitution)
+		{
+			return SpecializedProperty.Create(this, substitution);
+		}
+    }
+#endif
+
 	class FakeMethod : FakeMember, IMethod
 	{
 		readonly SymbolKind symbolKind;
