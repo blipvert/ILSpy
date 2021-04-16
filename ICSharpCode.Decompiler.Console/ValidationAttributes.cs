@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 
@@ -18,6 +18,11 @@ namespace ICSharpCode.Decompiler.Console
 					if (string.IsNullOrEmpty(obj.OutputDirectory))
 					{
 						return new ValidationResult("--project cannot be used unless --outputdir is also specified");
+					}
+                    // FIXME: Really shouldn't do this without asking
+					if (System.IO.Directory.Exists(obj.OutputDirectory))
+					{
+						System.IO.Directory.Delete(obj.OutputDirectory, true);
 					}
 					System.IO.Directory.CreateDirectory(obj.OutputDirectory);
 				}
