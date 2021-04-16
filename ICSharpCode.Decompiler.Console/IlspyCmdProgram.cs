@@ -83,6 +83,10 @@ Remarks:
 		{
 			TextWriter output = System.Console.Out;
 			bool outputDirectorySpecified = !string.IsNullOrEmpty(OutputDirectory);
+            string outputName =
+                !string.IsNullOrEmpty(TypeName) ? TypeName :
+                !string.IsNullOrEmpty(ProjectName) ? ProjectName :
+				Path.GetFileNameWithoutExtension(InputAssemblyName);
 
 			try {
 				if (CreateCompilableProjectFlag) {
@@ -91,23 +95,19 @@ Remarks:
 					var values = EntityTypes.SelectMany(v => v.Split(',', ';')).ToArray();
 					HashSet<TypeKind> kinds = TypesParser.ParseSelection(values);
 					if (outputDirectorySpecified) {
-						string outputName = Path.GetFileNameWithoutExtension(InputAssemblyName);
 						output = File.CreateText(Path.Combine(OutputDirectory, outputName) + ".list.txt");
 					}
 
 					return ListContent(InputAssemblyName, output, kinds);
 				} else if (ShowILCodeFlag || ShowILSequencePointsFlag) {
 					if (outputDirectorySpecified) {
-						string outputName = Path.GetFileNameWithoutExtension(InputAssemblyName);
-						output = File.CreateText(Path.Combine(OutputDirectory,
-							(string.IsNullOrEmpty(TypeName) ? outputName : TypeName)) + ".il");
+						output = File.CreateText(Path.Combine(OutputDirectory, outputName) + ".il");
 					}
 
 					return ShowIL(InputAssemblyName, output, TypeName);
 				} else if (CreateDebugInfoFlag) {
 					string pdbFileName = null;
 					if (outputDirectorySpecified) {
-						string outputName = Path.GetFileNameWithoutExtension(InputAssemblyName);
 						pdbFileName = Path.Combine(OutputDirectory, outputName) + ".pdb";
 					} else {
 						pdbFileName = Path.ChangeExtension(InputAssemblyName, ".pdb");
@@ -122,9 +122,7 @@ Remarks:
 					output.WriteLine(vInfo);
 				} else {
 					if (outputDirectorySpecified) {
-						string outputName = Path.GetFileNameWithoutExtension(InputAssemblyName);
-						output = File.CreateText(Path.Combine(OutputDirectory,
-							(string.IsNullOrEmpty(TypeName) ? outputName : TypeName) + ".decompiled.cs"));
+						output = File.CreateText(Path.Combine(OutputDirectory, outputName) + ".decompiled.cs");
 					}
 
 					return Decompile(InputAssemblyName, output, TypeName);
