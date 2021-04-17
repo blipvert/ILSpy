@@ -121,7 +121,6 @@ namespace ICSharpCode.Decompiler.TypeSystem.Implementation
 		}
 	}
 
-#if true
     // FIXME: Clean this up
 	class FakeProperty : FakeMember, IProperty
     {
@@ -156,7 +155,6 @@ namespace ICSharpCode.Decompiler.TypeSystem.Implementation
 			return SpecializedProperty.Create(this, substitution);
 		}
     }
-#endif
 
 	class FakeMethod : FakeMember, IMethod
 	{

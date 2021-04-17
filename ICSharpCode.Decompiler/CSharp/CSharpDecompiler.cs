@@ -1,4 +1,4 @@
-// Copyright (c) 2014 Daniel Grunwald
+﻿// Copyright (c) 2014 Daniel Grunwald
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -1266,24 +1266,18 @@ namespace ICSharpCode.Decompiler.CSharp
 					}
 					if (!method.MetadataToken.IsNil && !MemberIsHidden(module.PEFile, method.MetadataToken, settings))
 					{
-#if true
-                        // Egregious hack to infer missing property declaration
-						if (!method.IsAccessor && method.IsExplicitInterfaceImplementation)
-						{
-							IMethod imeth = method.ExplicitlyImplementedInterfaceMembers.First() as IMethod;
-							if (imeth.IsAccessor)
-							{
-								IProperty iprop = imeth.AccessorOwner as IProperty;
-								if (iprop != null)
-								{
-									var fprop = new ICSharpCode.Decompiler.TypeSystem.Implementation.FakeProperty(method.Compilation, iprop, method);
-									var propDecl = DoDecompile(fprop, decompileRun, decompilationContext.WithCurrentMember(fprop));
-									typeDecl.Members.Add(propDecl);
-									continue;
-								}
-							}
+                        if (!method.IsAccessor && method.IsExplicitInterfaceImplementation)
+                        {
+    						var iprop = InferMissingProperty(method);
+    						if (iprop != null)
+	    					{
+                                // This method implements an interface accessor but not the corresponding property.
+                                // This is not valid in C#, so in order to keep the generated code compilable, we supply the 
+                                // missing property declaration, which can be trivially constructed from the interface declaration.
+								typeDecl.Members.Add(DoDecompile(iprop, decompileRun, decompilationContext.WithCurrentMember(iprop)));
+								continue;
+                            }
 						}
-#endif
 						var memberDecl = DoDecompile(method, decompileRun, decompilationContext.WithCurrentMember(method));
 						typeDecl.Members.Add(memberDecl);
 						typeDecl.Members.AddRange(AddInterfaceImplHelpers(memberDecl, method, typeSystemAstBuilder));
@@ -1462,6 +1456,21 @@ namespace ICSharpCode.Decompiler.CSharp
 		internal static bool IsWindowsFormsInitializeComponentMethod(IMethod method)
 		{
 			return method.ReturnType.Kind == TypeKind.Void && method.Name == "InitializeComponent" && method.DeclaringTypeDefinition.GetNonInterfaceBaseTypes().Any(t => t.FullName == "System.Windows.Forms.Control");
+		}
+
+		internal static IProperty InferMissingProperty(IMethod method)
+		{
+			// Egregious hack to infer missing property declaration
+			foreach (var member in method.ExplicitlyImplementedInterfaceMembers)
+			{
+				if ((member is IMethod interfaceMeth) && interfaceMeth.IsAccessor &&
+					interfaceMeth.AccessorKind == System.Reflection.MethodSemanticsAttributes.Getter &&
+					interfaceMeth.AccessorOwner is IProperty interfaceProp)
+				{
+					return new ICSharpCode.Decompiler.TypeSystem.Implementation.FakeProperty(method.Compilation, interfaceProp, method);
+				}
+			}
+			return null;
 		}
 
 		void DecompileBody(IMethod method, EntityDeclaration entityDecl, DecompileRun decompileRun, ITypeResolveContext decompilationContext)
