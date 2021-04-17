@@ -126,22 +126,20 @@ namespace ICSharpCode.Decompiler.TypeSystem.Implementation
 	class FakeProperty : FakeMember, IProperty
     {
 		readonly IMethod getter;
-		readonly IMethod setter;
 		readonly IProperty iprop;
 
-		public FakeProperty(ICompilation compilation, IProperty iprop, IMethod getter, IMethod setter = null) : base(compilation)
+		public FakeProperty(ICompilation compilation, IProperty iprop, IMethod getter) : base(compilation)
 		{
 			this.iprop = iprop;
 			this.getter = getter;
-			this.setter = setter;
 			this.Name = iprop.Name;
 			this.ReturnType = iprop.ReturnType;
 		}
 
-		bool IProperty.CanGet => getter != null;
-		bool IProperty.CanSet => setter != null;
+		bool IProperty.CanGet => true;
+		bool IProperty.CanSet => false;
 		IMethod IProperty.Getter => getter;
-		IMethod IProperty.Setter => setter;
+		IMethod IProperty.Setter => null;
 		bool IProperty.IsIndexer => false;
 		bool IProperty.ReturnTypeIsRefReadOnly => iprop.ReturnTypeIsRefReadOnly;
 		IEnumerable<IMember> IMember.ExplicitlyImplementedInterfaceMembers { get { yield return iprop; } }
