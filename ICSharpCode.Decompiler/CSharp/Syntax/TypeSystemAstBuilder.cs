@@ -1972,10 +1972,13 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 					decl.Attributes.AddRange(ConvertAttributes(accessor.Parameters.Last().GetAttributes(), "param"));
 				}
 			}
-			if (this.ShowAccessibility && accessor.Accessibility != ownerAccessibility)
-				decl.Modifiers = ModifierFromAccessibility(accessor.Accessibility);
-			if (accessor.HasReadonlyModifier())
-				decl.Modifiers |= Modifiers.Readonly;
+			if (accessor.IsAccessor)
+			{
+				if (this.ShowAccessibility && accessor.Accessibility != ownerAccessibility)
+					decl.Modifiers = ModifierFromAccessibility(accessor.Accessibility);
+				if (accessor.HasReadonlyModifier())
+					decl.Modifiers |= Modifiers.Readonly;
+			}
 			TokenRole keywordRole = kind switch
 			{
 				MethodSemanticsAttributes.Getter => PropertyDeclaration.GetKeywordRole,
