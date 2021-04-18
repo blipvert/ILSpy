@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020 Daniel Grunwald
+// Copyright (c) 2020 Daniel Grunwald
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -53,5 +53,10 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		/// Gets the name of the key file being used for strong name signing. Can be null if no file is available.
 		/// </summary>
 		string StrongNameKeyFile { get; }
+
+		/// <summary>
+		/// Gets the value of the Unity flag.
+		/// </summary>
+		bool UnityFlag { get; }
 	}
 }

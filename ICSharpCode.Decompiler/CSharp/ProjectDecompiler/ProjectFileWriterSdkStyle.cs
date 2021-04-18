@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2020 Siegfried Pammer
+// Copyright (c) 2020 Siegfried Pammer
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -252,6 +252,19 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 						targetPacks.Add("Microsoft.AspNetCore.All");
 						break;
 				}
+			}
+
+			if (project.UnityFlag)
+			{
+				var unity = AssemblyNameReference.Parse("UnityEngine");
+				xml.WriteStartElement("Reference");
+				xml.WriteAttributeString("Include", unity.Name);
+				var hint = project.AssemblyResolver.Resolve(unity);
+				if (hint != null)
+				{
+					xml.WriteElementString("HintPath", FileUtility.GetRelativePath(project.TargetDirectory, hint.FileName));
+				}
+				xml.WriteEndElement();
 			}
 
 			foreach (var reference in module.AssemblyReferences.Where(r => !ImplicitReferences.Contains(r.Name)))

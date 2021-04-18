@@ -50,6 +50,9 @@ Remarks:
 		[Option("--clean", "Remove old output directory, if it exists.", CommandOptionType.NoValue)]
 		public bool RemoveOldOutputDir { get; }
 
+		[Option("--unity", "Activate Unity-specific behavior.", CommandOptionType.NoValue)]
+		public bool UnityFlag { get; }
+
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
 
@@ -145,7 +148,8 @@ Remarks:
 			return new DecompilerSettings(LanguageVersion) {
 				ThrowOnAssemblyResolveErrors = false,
 				RemoveDeadCode = RemoveDeadCode,
-				RemoveDeadStores = RemoveDeadStores
+				RemoveDeadStores = RemoveDeadStores,
+				UnityFlag = UnityFlag
 			};
 		}
 

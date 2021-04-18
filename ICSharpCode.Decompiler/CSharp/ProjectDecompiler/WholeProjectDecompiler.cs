@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2016 Daniel Grunwald
+// Copyright (c) 2016 Daniel Grunwald
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -63,6 +63,8 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 				languageVersion = value;
 			}
 		}
+
+		public bool UnityFlag => Settings.UnityFlag;
 
 		public IAssemblyResolver AssemblyResolver { get; }
 
