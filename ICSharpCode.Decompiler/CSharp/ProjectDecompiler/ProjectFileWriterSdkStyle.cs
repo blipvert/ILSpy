@@ -263,15 +263,7 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 
 			if (project.UnityFlag)
 			{
-				var unity = AssemblyNameReference.Parse("UnityEngine");
-				xml.WriteStartElement("Reference");
-				xml.WriteAttributeString("Include", unity.Name);
-				var hint = project.AssemblyResolver.Resolve(unity);
-				if (hint != null)
-				{
-					xml.WriteElementString("HintPath", FileUtility.GetRelativePath(project.TargetDirectory, hint.FileName));
-				}
-				xml.WriteEndElement();
+				WriteAssemblyReference(xml, project, AssemblyNameReference.Parse("UnityEngine"));
 			}
 
 			foreach (var reference in module.AssemblyReferences.Where(r => !ImplicitReferences.Contains(r.Name)))
@@ -280,18 +272,22 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 				{
 					continue;
 				}
-
-				xml.WriteStartElement("Reference");
-				xml.WriteAttributeString("Include", reference.Name);
-
-				var asembly = project.AssemblyResolver.Resolve(reference);
-				if (asembly != null && !project.AssemblyReferenceClassifier.IsGacAssembly(reference))
-				{
-					xml.WriteElementString("HintPath", FileUtility.GetRelativePath(project.TargetDirectory, asembly.FileName));
-				}
-
-				xml.WriteEndElement();
+				WriteAssemblyReference(xml, project, reference);
 			}
+		}
+
+		static void WriteAssemblyReference(XmlTextWriter xml, IProjectInfoProvider project, IAssemblyReference reference)
+		{
+			xml.WriteStartElement("Reference");
+			xml.WriteAttributeString("Include", reference.Name);
+
+			var asembly = project.AssemblyResolver.Resolve(reference);
+			if (asembly != null && !project.AssemblyReferenceClassifier.IsGacAssembly(reference))
+			{
+				xml.WriteElementString("HintPath", FileUtility.GetRelativePath(project.TargetDirectory, asembly.FileName));
+			}
+
+			xml.WriteEndElement();
 		}
 
 		static string GetSdkString(ProjectType projectType)
