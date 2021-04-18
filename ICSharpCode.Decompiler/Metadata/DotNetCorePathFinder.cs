@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2018 Siegfried Pammer
+// Copyright (c) 2018 Siegfried Pammer
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -127,9 +127,16 @@ namespace ICSharpCode.Decompiler.Metadata
 			}
 		}
 
-		public void AddSearchDirectory(string path)
+		public void AddSearchDirectory(string path, bool prepend = false)
 		{
-			this.searchPaths.Add(path);
+			if (prepend)
+			{
+				this.searchPaths.Insert(0, path);
+			}
+			else
+			{
+				this.searchPaths.Add(path);
+			}
 		}
 
 		public void RemoveSearchDirectory(string path)

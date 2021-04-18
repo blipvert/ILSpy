@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2018 Siegfried Pammer
+// Copyright (c) 2018 Siegfried Pammer
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -70,12 +70,19 @@ namespace ICSharpCode.Decompiler.Metadata
 		static readonly List<string> gac_paths = GetGacPaths();
 		static readonly DecompilerRuntime decompilerRuntime;
 
-		public void AddSearchDirectory(string directory)
+		public void AddSearchDirectory(string directory, bool prepend = false)
 		{
-			directories.Add(directory);
+			if (prepend)
+			{
+				directories.Insert(0, directory);
+			}
+			else
+			{
+				directories.Add(directory);
+			}
 			if (dotNetCorePathFinder.IsValueCreated)
 			{
-				dotNetCorePathFinder.Value.AddSearchDirectory(directory);
+				dotNetCorePathFinder.Value.AddSearchDirectory(directory, prepend);
 			}
 		}
 
