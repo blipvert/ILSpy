@@ -19,8 +19,7 @@ namespace ICSharpCode.Decompiler.Console
 					{
 						return new ValidationResult("--project cannot be used unless --outputdir is also specified");
 					}
-                    // FIXME: Really shouldn't do this without asking
-					if (System.IO.Directory.Exists(obj.OutputDirectory))
+					if (obj.RemoveOldOutputDir && System.IO.Directory.Exists(obj.OutputDirectory))
 					{
 						System.IO.Directory.Delete(obj.OutputDirectory, true);
 					}

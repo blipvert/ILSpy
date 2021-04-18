@@ -47,6 +47,9 @@ Remarks:
 		[Option("-n|--project-name <project-name>", "Override the name of the project produced.", CommandOptionType.SingleValue)]
 		public string ProjectName { get; }
 
+		[Option("--clean", "Remove old output directory, if it exists.", CommandOptionType.NoValue)]
+		public bool RemoveOldOutputDir { get; }
+
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
 
