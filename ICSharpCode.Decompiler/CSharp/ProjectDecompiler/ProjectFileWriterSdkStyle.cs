@@ -86,8 +86,11 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			PlaceIntoTag("PropertyGroup", xml, () => WriteAssemblyInfo(xml, module, project, projectType));
 			PlaceIntoTag("PropertyGroup", xml, () => WriteProjectInfo(xml, project));
 			PlaceIntoTag("PropertyGroup", xml, () => WriteMiscellaneousPropertyGroup(xml, files));
-			PlaceIntoTag("ItemGroup", xml, () => WriteResources(xml, files));
 			PlaceIntoTag("ItemGroup", xml, () => WriteReferences(xml, module, project, projectType));
+			if (project.UnityFlag)
+			{
+				PlaceIntoTag("ItemGroup", xml, () => WriteCodeFiles(xml, files));
+			}
 
 			xml.WriteEndElement();
 		}
@@ -193,6 +196,11 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 				xml.WriteElementString("SignAssembly", TrueString);
 				xml.WriteElementString("AssemblyOriginatorKeyFile", Path.GetFileName(project.StrongNameKeyFile));
 			}
+
+			if (project.UnityFlag)
+			{
+				xml.WriteElementString("EnableDefaultCompileItems", FalseString);
+			}
 		}
 
 		static void WriteMiscellaneousPropertyGroup(XmlTextWriter xml, IEnumerable<(string itemType, string fileName)> files)
@@ -208,6 +216,17 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			if (files.Any(t => t.itemType == "EmbeddedResource"))
 				xml.WriteElementString("RootNamespace", string.Empty);
 			// TODO: We should add CustomToolNamespace for resources, otherwise we should add empty RootNamespace
+		}
+
+		static void WriteCodeFiles(XmlTextWriter xml, IEnumerable<(string itemType, string fileName)> files)
+		{
+			// include phase
+			foreach (var (itemType, fileName) in files.Where(t => t.itemType == "Compile"))
+			{
+				xml.WriteStartElement("Compile");
+				xml.WriteAttributeString("Include", fileName);
+				xml.WriteEndElement();
+			}
 		}
 
 		static void WriteResources(XmlTextWriter xml, IEnumerable<(string itemType, string fileName)> files)
