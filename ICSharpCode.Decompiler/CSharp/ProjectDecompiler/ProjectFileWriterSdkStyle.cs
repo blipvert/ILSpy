@@ -117,16 +117,23 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			WriteDesktopExtensions(xml, projectType);
 
 			string platformName = TargetServices.GetPlatformName(module);
-			var targetFramework = TargetServices.DetectTargetFramework(module);
-			if (targetFramework.Identifier == ".NETFramework" && targetFramework.VersionNumber == 200)
-				targetFramework = TargetServices.DetectTargetFrameworkNET20(module, project.AssemblyResolver, targetFramework);
-
-			if (targetFramework.Moniker == null)
+			if (string.IsNullOrEmpty(project.TargetFramework))
 			{
-				throw new NotSupportedException($"Cannot decompile this assembly to a SDK style project. Use default project format instead.");
-			}
+				var targetFramework = TargetServices.DetectTargetFramework(module);
+				if (targetFramework.Identifier == ".NETFramework" && targetFramework.VersionNumber == 200)
+					targetFramework = TargetServices.DetectTargetFrameworkNET20(module, project.AssemblyResolver, targetFramework);
 
-			xml.WriteElementString("TargetFramework", targetFramework.Moniker);
+				if (targetFramework.Moniker == null)
+				{
+					throw new NotSupportedException($"Cannot decompile this assembly to a SDK style project. Use default project format instead.");
+				}
+
+				xml.WriteElementString("TargetFramework", targetFramework.Moniker);
+			}
+			else
+			{
+				xml.WriteElementString("TargetFramework", project.TargetFramework);
+			}
 
 			// 'AnyCPU' is default, so only need to specify platform if it differs
 			if (platformName != AnyCpuString)

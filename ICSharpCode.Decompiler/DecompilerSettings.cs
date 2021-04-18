@@ -1727,6 +1727,24 @@ namespace ICSharpCode.Decompiler
 			}
 		}
 
+		string forceTargetFramework = null;
+
+		/// <summary>
+		/// Allows to force an override of the detected target framework moniker.
+		/// </summary>
+		[Category("DecompilerSettings.Other")]
+		[Description("DecompilerSettings.ForceTargetFramework")]
+		public string ForceTargetFramework {
+			get { return forceTargetFramework; }
+			set {
+				if (forceTargetFramework != value)
+				{
+					forceTargetFramework = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		bool unityFlag = false;
 		[Category("DecompilerSettings.Other")]
 		[Description("DecompilerSettings.UnityFlag")]

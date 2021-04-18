@@ -64,6 +64,8 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			}
 		}
 
+		public string TargetFramework => Settings.ForceTargetFramework;
+
 		public bool UnityFlag => Settings.UnityFlag;
 
 		public IAssemblyResolver AssemblyResolver { get; }
@@ -85,6 +87,8 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		/// can access it.
 		/// </remarks>
 		public string TargetDirectory { get; protected set; }
+
+		public string BuildDirectory { get; set; }
 
 		/// <summary>
 		/// Path to the snk file to use for signing.

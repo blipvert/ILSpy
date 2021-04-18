@@ -50,6 +50,9 @@ Remarks:
 		[Option("-n|--project-name <project-name>", "Override the name of the project produced.", CommandOptionType.SingleValue)]
 		public string ProjectName { get; }
 
+		[Option("-F|--target-framework <framework-moniker>", "Override the detected target framework.", CommandOptionType.SingleValue)]
+		public string TargetFramework { get; }
+
 		[Option("--clean", "Remove old output directory, if it exists.", CommandOptionType.NoValue)]
 		public bool RemoveOldOutputDir { get; }
 
@@ -152,6 +155,7 @@ Remarks:
 				ThrowOnAssemblyResolveErrors = false,
 				RemoveDeadCode = RemoveDeadCode,
 				RemoveDeadStores = RemoveDeadStores,
+				ForceTargetFramework = TargetFramework,
 				UnityFlag = UnityFlag
 			};
 		}

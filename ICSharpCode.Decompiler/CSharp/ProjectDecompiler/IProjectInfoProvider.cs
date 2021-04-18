@@ -39,6 +39,8 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		/// </summary>
 		LanguageVersion LanguageVersion { get; }
 
+		string TargetFramework { get; }
+
 		/// <summary>
 		/// Gets the unique ID of the project.
 		/// </summary>
