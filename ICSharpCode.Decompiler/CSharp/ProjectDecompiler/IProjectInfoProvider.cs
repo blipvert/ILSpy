@@ -45,7 +45,7 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		Guid ProjectGuid { get; }
 
 		/// <summary>
-		/// Gets the target directory of the project
+		/// Gets the target directory of the project.
 		/// </summary>
 		string TargetDirectory { get; }
 
