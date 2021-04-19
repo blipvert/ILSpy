@@ -62,6 +62,9 @@ Remarks:
 		[Option("-U|--unity", "Activate Unity-specific behavior.", CommandOptionType.NoValue)]
 		public bool UnityFlag { get; private set; }
 
+        [Option("-UL|--unitylibs", "Path to Unity libraries to use in the decompilation. Implies --unity.", CommandOptionType.SingleValue)]
+        public string UnityLibPath { get; }
+
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
 
@@ -102,7 +105,8 @@ Remarks:
                 !string.IsNullOrEmpty(TypeName) ? TypeName :
                 !string.IsNullOrEmpty(ProjectName) ? ProjectName :
 				Path.GetFileNameWithoutExtension(InputAssemblyName);
-
+			if (!string.IsNullOrEmpty(UnityLibPath))
+				UnityFlag = true;
 			try {
 				if (CreateCompilableProjectFlag) {
 					return DecompileAsProject(InputAssemblyName, OutputDirectory, BuildDirectory, ProjectName);
@@ -175,6 +179,10 @@ Remarks:
 			foreach (var path in ReferencePaths) {
 				resolver.AddSearchDirectory(path);
 			}
+            if (!string.IsNullOrEmpty(UnityLibPath))
+            {
+                resolver.AddSearchDirectory(UnityLibPath, true);
+            }
 			return new CSharpDecompiler(assemblyFileName, resolver, GetSettings()) {
 				DebugInfoProvider = TryLoadPDB(module)
 			};
@@ -212,6 +220,10 @@ Remarks:
 			foreach (var path in ReferencePaths) {
 				resolver.AddSearchDirectory(path);
 			}
+            if (!string.IsNullOrEmpty(UnityLibPath))
+            {
+                resolver.AddSearchDirectory(UnityLibPath, true);
+            }
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
 			decompiler.DecompileNamedProject(module, outputDirectory, projectName);
 			return 0;
