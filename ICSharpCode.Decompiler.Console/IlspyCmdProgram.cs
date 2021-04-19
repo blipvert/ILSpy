@@ -53,6 +53,9 @@ Remarks:
 		[Option("-F|--target-framework <framework-moniker>", "Override the detected target framework.", CommandOptionType.SingleValue)]
 		public string TargetFramework { get; }
 
+		[Option("-s|--indent <number>", "Switches indentation to <number> spaces per level.", CommandOptionType.SingleValue)]
+		public int IndentationLevel { get; } = 0;
+
 		[Option("-K|--clean", "Remove old output directory, if it exists.", CommandOptionType.NoValue)]
 		public bool RemoveOldOutputDir { get; }
 
@@ -151,13 +154,18 @@ Remarks:
 
 		DecompilerSettings GetSettings()
 		{
-			return new DecompilerSettings(LanguageVersion) {
+			var settings = new DecompilerSettings(LanguageVersion) {
 				ThrowOnAssemblyResolveErrors = false,
 				RemoveDeadCode = RemoveDeadCode,
 				RemoveDeadStores = RemoveDeadStores,
 				ForceTargetFramework = TargetFramework,
 				UnityFlag = UnityFlag
 			};
+			if (IndentationLevel > 0)
+			{
+				settings.CSharpFormattingOptions.IndentationString = new string(' ', IndentationLevel);
+			}
+			return settings;
 		}
 
 		CSharpDecompiler GetDecompiler(string assemblyFileName)
