@@ -53,11 +53,11 @@ Remarks:
 		[Option("-F|--target-framework <framework-moniker>", "Override the detected target framework.", CommandOptionType.SingleValue)]
 		public string TargetFramework { get; }
 
-		[Option("--clean", "Remove old output directory, if it exists.", CommandOptionType.NoValue)]
+		[Option("-K|--clean", "Remove old output directory, if it exists.", CommandOptionType.NoValue)]
 		public bool RemoveOldOutputDir { get; }
 
-		[Option("--unity", "Activate Unity-specific behavior.", CommandOptionType.NoValue)]
-		public bool UnityFlag { get; }
+		[Option("-U|--unity", "Activate Unity-specific behavior.", CommandOptionType.NoValue)]
+		public bool UnityFlag { get; private set; }
 
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
