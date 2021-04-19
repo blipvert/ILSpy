@@ -291,7 +291,15 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 				{
 					continue;
 				}
-				WriteAssemblyReference(xml, project, reference);
+				var refProject = reference.Name + ".csproj";
+				if (File.Exists(Path.Combine(project.TargetDirectory, refProject)))
+				{
+					WriteProjectReference(xml, refProject);
+				}
+				else
+				{
+					WriteAssemblyReference(xml, project, reference);
+				}
 			}
 		}
 
@@ -306,6 +314,13 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 				xml.WriteElementString("HintPath", FileUtility.GetRelativePath(project.TargetDirectory, asembly.FileName));
 			}
 
+			xml.WriteEndElement();
+		}
+
+		static void WriteProjectReference(XmlTextWriter xml, string projectRef)
+		{
+			xml.WriteStartElement("ProjectReference");
+			xml.WriteAttributeString("Include", projectRef);
 			xml.WriteEndElement();
 		}
 
