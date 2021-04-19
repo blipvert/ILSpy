@@ -221,7 +221,7 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		static void WriteCodeFiles(XmlTextWriter xml, IEnumerable<(string itemType, string fileName)> files)
 		{
 			// include phase
-			foreach (var (itemType, fileName) in files.Where(t => t.itemType == "Compile"))
+			foreach (var fileName in files.Where(t => t.itemType == "Compile").Select(t => t.fileName).OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
 			{
 				xml.WriteStartElement("Compile");
 				xml.WriteAttributeString("Include", fileName);
