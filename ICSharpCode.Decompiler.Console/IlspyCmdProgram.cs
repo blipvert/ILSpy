@@ -109,6 +109,10 @@ Remarks:
 				UnityFlag = true;
 			try {
 				if (CreateCompilableProjectFlag) {
+					if (UnityFlag)
+					{
+						DecompileUnityFirstPass(InputAssemblyName, OutputDirectory, BuildDirectory, ProjectName);
+					}
 					return DecompileAsProject(InputAssemblyName, OutputDirectory, BuildDirectory, ProjectName);
 				} else if (EntityTypes.Any()) {
 					var values = EntityTypes.SelectMany(v => v.Split(',', ';')).ToArray();
@@ -210,6 +214,20 @@ Remarks:
 				ShowSequencePoints = ShowILSequencePointsFlag,
 			};
 			disassembler.WriteModuleContents(module, typeName);
+			return 0;
+		}
+
+		int DecompileUnityFirstPass(string assemblyFilename, string outputDirectory, string buildDirectory, string projectName = null)
+		{
+			if (Path.GetExtension(assemblyFilename).ToLowerInvariant() == ".dll")
+			{
+				string firstPassAssemblyFilename = Path.ChangeExtension(assemblyFilename, null) + "-firstpass.dll";
+				if (File.Exists(firstPassAssemblyFilename))
+				{
+					DecompileAsProject(firstPassAssemblyFilename, outputDirectory, buildDirectory,
+						string.IsNullOrEmpty(projectName) ? projectName : projectName + "-firstpass");
+				}
+			}
 			return 0;
 		}
 
