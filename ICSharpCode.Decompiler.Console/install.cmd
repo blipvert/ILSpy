@@ -8,7 +8,7 @@ if "%2"=="" goto usage
 if %2=="" goto usage
 
 if exist %2 rd /s /q %2
-xcopy /s /i %1 %2
+xcopy /i %1 %2
 goto :eof
 
 :usage

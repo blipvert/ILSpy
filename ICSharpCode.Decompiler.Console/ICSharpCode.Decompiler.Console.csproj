@@ -60,7 +60,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(InstallDir)' != ''">
-    <Exec Command="&quot;$(ProjectDir)install.cmd&quot; &quot;$(TargetDir)publish&quot; &quot;$(InstallDir)&quot;" />
+    <Exec Command="&quot;$(ProjectDir)install.cmd&quot; &quot;$(TargetDir)&quot; &quot;$(InstallDir)&quot;" />
   </Target>
 
 </Project>
