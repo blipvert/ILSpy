@@ -146,11 +146,11 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 				CleanUpFileName(string.IsNullOrEmpty(moduleName) ? moduleDefinition.Name : moduleName) + ".csproj");
 			using (var writer = new StreamWriter(projectFileName))
 			{
-				DecompileProject(moduleDefinition, targetDirectory, writer, cancellationToken);
+				DecompileProjectInternal(moduleDefinition, targetDirectory, writer, cancellationToken);
 			}
 		}
 
-		public ProjectId DecompileProject(PEFile moduleDefinition, string targetDirectory, TextWriter projectFileWriter, CancellationToken cancellationToken = default(CancellationToken))
+		private ProjectId DecompileProjectInternal(PEFile moduleDefinition, string targetDirectory, TextWriter projectFileWriter, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (string.IsNullOrEmpty(targetDirectory))
 			{
