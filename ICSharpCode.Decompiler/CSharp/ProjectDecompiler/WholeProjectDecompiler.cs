@@ -88,7 +88,7 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		/// </remarks>
 		public string TargetDirectory { get; protected set; }
 
-		public string BuildDirectory { get; set; }
+		public string ProjectRootDirectory { get; set; }
 
 		/// <summary>
 		/// Path to the snk file to use for signing.
