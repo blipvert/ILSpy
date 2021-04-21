@@ -38,6 +38,9 @@ Remarks:
 		[Option("-o|--outputdir <directory>", "The output directory, if omitted decompiler output is written to standard out.", CommandOptionType.SingleValue)]
 		public string OutputDirectory { get; }
 
+		[Option("-b|--builddir <directory>", "Directory which is used as the base for all build output paths.", CommandOptionType.SingleValue)]
+		public string BuildDirectory { get; }
+
 		[Option("-p|--project", "Decompile assembly as compilable project. This requires the output directory option.", CommandOptionType.NoValue)]
 		public bool CreateCompilableProjectFlag { get; }
 
@@ -96,7 +99,7 @@ Remarks:
 
 			try {
 				if (CreateCompilableProjectFlag) {
-					return DecompileAsProject(InputAssemblyName, OutputDirectory, ProjectName);
+					return DecompileAsProject(InputAssemblyName, OutputDirectory, BuildDirectory, ProjectName);
 				} else if (EntityTypes.Any()) {
 					var values = EntityTypes.SelectMany(v => v.Split(',', ';')).ToArray();
 					HashSet<TypeKind> kinds = TypesParser.ParseSelection(values);
@@ -190,7 +193,7 @@ Remarks:
 			return 0;
 		}
 
-		int DecompileAsProject(string assemblyFileName, string outputDirectory, string projectName = null)
+		int DecompileAsProject(string assemblyFileName, string outputDirectory, string buildDirectory, string projectName = null)
 		{
 			var module = new PEFile(assemblyFileName);
 			var resolver = new UniversalAssemblyResolver(assemblyFileName, false, module.Reader.DetectTargetFrameworkId());
