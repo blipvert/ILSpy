@@ -243,7 +243,7 @@ Remarks:
                 resolver.AddSearchDirectory(UnityLibPath, true);
             }
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
-			decompiler.DecompileNamedProject(module, outputDirectory, projectName);
+			decompiler.DecompileNamedProject(module, outputDirectory, buildDirectory, projectName);
 			return 0;
 		}
 

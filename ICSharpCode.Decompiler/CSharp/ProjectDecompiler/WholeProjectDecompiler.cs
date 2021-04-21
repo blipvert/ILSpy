@@ -88,8 +88,6 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 		/// </remarks>
 		public string TargetDirectory { get; protected set; }
 
-		public string ProjectRootDirectory { get; set; }
-
 		/// <summary>
 		/// Path to the snk file to use for signing.
 		/// <c>null</c> to not sign.
@@ -137,20 +135,20 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 
 		public void DecompileProject(PEFile moduleDefinition, string targetDirectory, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			DecompileNamedProject(moduleDefinition, targetDirectory, null, cancellationToken);
+			DecompileNamedProject(moduleDefinition, targetDirectory, null, null, cancellationToken);
 		}
 
-		public void DecompileNamedProject(PEFile moduleDefinition, string targetDirectory, string moduleName, CancellationToken cancellationToken = default(CancellationToken))
+		public void DecompileNamedProject(PEFile moduleDefinition, string targetDirectory, string projectRoot, string moduleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			string projectFileName = Path.Combine(string.IsNullOrEmpty(ProjectRootDirectory) ? targetDirectory : ProjectRootDirectory,
+			string projectFileName = Path.Combine(string.IsNullOrEmpty(projectRoot) ? targetDirectory : projectRoot,
 				CleanUpFileName(string.IsNullOrEmpty(moduleName) ? moduleDefinition.Name : moduleName) + ".csproj");
 			using (var writer = new StreamWriter(projectFileName))
 			{
-				DecompileProjectInternal(moduleDefinition, targetDirectory, writer, cancellationToken);
+				DecompileProjectInternal(moduleDefinition, targetDirectory, projectRoot, writer, cancellationToken);
 			}
 		}
 
-		private ProjectId DecompileProjectInternal(PEFile moduleDefinition, string targetDirectory, TextWriter projectFileWriter, CancellationToken cancellationToken = default(CancellationToken))
+		private ProjectId DecompileProjectInternal(PEFile moduleDefinition, string targetDirectory, string projectRoot, TextWriter projectFileWriter, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (string.IsNullOrEmpty(targetDirectory))
 			{
@@ -161,7 +159,6 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			var files = WriteCodeFilesInProject(moduleDefinition, cancellationToken).ToList();
 			files.AddRange(WriteResourceFilesInProject(moduleDefinition));
 			files.AddRange(WriteMiscellaneousFilesInProject(moduleDefinition));
-			var projectRoot = ProjectRootDirectory;
 			if (string.IsNullOrEmpty(projectRoot))
 			{
 				projectRoot = targetDirectory;
