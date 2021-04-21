@@ -159,18 +159,15 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			var files = WriteCodeFilesInProject(moduleDefinition, cancellationToken).ToList();
 			files.AddRange(WriteResourceFilesInProject(moduleDefinition));
 			files.AddRange(WriteMiscellaneousFilesInProject(moduleDefinition));
-			if (string.IsNullOrEmpty(projectRoot))
-			{
-				projectRoot = targetDirectory;
-			}
-			else
+			if (!string.IsNullOrEmpty(projectRoot))
 			{
 				var targetDirectoryRel = FileUtility.GetRelativePath(projectRoot, targetDirectory);
 				files = files.Select(t => (t.itemType, Path.Combine(targetDirectoryRel, t.fileName))).ToList();
+				TargetDirectory = projectRoot;
 			}
 			if (StrongNameKeyFile != null)
 			{
-				File.Copy(StrongNameKeyFile, Path.Combine(projectRoot, Path.GetFileName(StrongNameKeyFile)), overwrite: true);
+				File.Copy(StrongNameKeyFile, Path.Combine(TargetDirectory, Path.GetFileName(StrongNameKeyFile)), overwrite: true);
 			}
 
 			projectWriter.Write(projectFileWriter, this, files, moduleDefinition);
