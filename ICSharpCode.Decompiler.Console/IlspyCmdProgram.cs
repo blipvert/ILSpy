@@ -62,9 +62,6 @@ Remarks:
 		[Option("-U|--unity", "Activate Unity-specific behavior.", CommandOptionType.NoValue)]
 		public bool UnityFlag { get; private set; }
 
-        [Option("-UL|--unitylibs", "Path to Unity libraries to use in the decompilation. Implies --unity.", CommandOptionType.SingleValue)]
-        public string UnityLibPath { get; }
-
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
 
@@ -91,6 +88,10 @@ Remarks:
 		[Option("-r|--referencepath <path>", "Path to a directory containing dependencies of the assembly that is being decompiled.", CommandOptionType.MultipleValue)]
 		public string[] ReferencePaths { get; } = new string[0];
 
+		[DirectoryExists]
+		[Option("-R|--referencepath-prepend <path>", "Same as --referencepath, but directory is prepended to the search path.", CommandOptionType.MultipleValue)]
+		public string[] PrependReferencePaths { get; } = new string[0];
+
 		[Option("--no-dead-code", "Remove dead code.", CommandOptionType.NoValue)]
 		public bool RemoveDeadCode { get; }
 
@@ -105,8 +106,6 @@ Remarks:
                 !string.IsNullOrEmpty(TypeName) ? TypeName :
                 !string.IsNullOrEmpty(ProjectName) ? ProjectName :
 				Path.GetFileNameWithoutExtension(InputAssemblyName);
-			if (!string.IsNullOrEmpty(UnityLibPath))
-				UnityFlag = true;
 			try {
 				if (CreateCompilableProjectFlag) {
 					if (UnityFlag)
@@ -183,10 +182,10 @@ Remarks:
 			foreach (var path in ReferencePaths) {
 				resolver.AddSearchDirectory(path);
 			}
-            if (!string.IsNullOrEmpty(UnityLibPath))
-            {
-                resolver.AddSearchDirectory(UnityLibPath, true);
-            }
+			for (int i = PrependReferencePaths.Length; i > 0;)
+			{
+				resolver.AddSearchDirectory(PrependReferencePaths[--i], true);
+			}
 			return new CSharpDecompiler(assemblyFileName, resolver, GetSettings()) {
 				DebugInfoProvider = TryLoadPDB(module)
 			};
@@ -238,10 +237,10 @@ Remarks:
 			foreach (var path in ReferencePaths) {
 				resolver.AddSearchDirectory(path);
 			}
-            if (!string.IsNullOrEmpty(UnityLibPath))
-            {
-                resolver.AddSearchDirectory(UnityLibPath, true);
-            }
+			for (int i = PrependReferencePaths.Length; i > 0;)
+			{
+				resolver.AddSearchDirectory(PrependReferencePaths[--i], true);
+			}
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
 			decompiler.DecompileNamedProject(module, outputDirectory, projectRoot, projectName);
 			return 0;
