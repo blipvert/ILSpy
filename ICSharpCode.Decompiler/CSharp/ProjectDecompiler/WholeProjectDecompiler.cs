@@ -142,7 +142,7 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 
 		public void DecompileNamedProject(PEFile moduleDefinition, string targetDirectory, string moduleName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			string projectFileName = Path.Combine(targetDirectory,
+			string projectFileName = Path.Combine(string.IsNullOrEmpty(ProjectRootDirectory) ? targetDirectory : ProjectRootDirectory,
 				CleanUpFileName(string.IsNullOrEmpty(moduleName) ? moduleDefinition.Name : moduleName) + ".csproj");
 			using (var writer = new StreamWriter(projectFileName))
 			{
@@ -161,9 +161,19 @@ namespace ICSharpCode.Decompiler.CSharp.ProjectDecompiler
 			var files = WriteCodeFilesInProject(moduleDefinition, cancellationToken).ToList();
 			files.AddRange(WriteResourceFilesInProject(moduleDefinition));
 			files.AddRange(WriteMiscellaneousFilesInProject(moduleDefinition));
+			var projectRoot = ProjectRootDirectory;
+			if (string.IsNullOrEmpty(projectRoot))
+			{
+				projectRoot = targetDirectory;
+			}
+			else
+			{
+				var targetDirectoryRel = FileUtility.GetRelativePath(projectRoot, targetDirectory);
+				files = files.Select(t => (t.itemType, Path.Combine(targetDirectoryRel, t.fileName))).ToList();
+			}
 			if (StrongNameKeyFile != null)
 			{
-				File.Copy(StrongNameKeyFile, Path.Combine(targetDirectory, Path.GetFileName(StrongNameKeyFile)), overwrite: true);
+				File.Copy(StrongNameKeyFile, Path.Combine(projectRoot, Path.GetFileName(StrongNameKeyFile)), overwrite: true);
 			}
 
 			projectWriter.Write(projectFileWriter, this, files, moduleDefinition);
