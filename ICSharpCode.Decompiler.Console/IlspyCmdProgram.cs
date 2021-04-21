@@ -38,8 +38,8 @@ Remarks:
 		[Option("-o|--outputdir <directory>", "The output directory, if omitted decompiler output is written to standard out.", CommandOptionType.SingleValue)]
 		public string OutputDirectory { get; }
 
-		[Option("-b|--builddir <directory>", "Directory which is used as the base for all build output paths.", CommandOptionType.SingleValue)]
-		public string BuildDirectory { get; }
+		[Option("-b|--basedir <directory>", "Directory which is used as the base for all build output paths.", CommandOptionType.SingleValue)]
+		public string ProjectRootDirectory { get; }
 
 		[Option("-p|--project", "Decompile assembly as compilable project. This requires the output directory option.", CommandOptionType.NoValue)]
 		public bool CreateCompilableProjectFlag { get; }
@@ -111,9 +111,9 @@ Remarks:
 				if (CreateCompilableProjectFlag) {
 					if (UnityFlag)
 					{
-						DecompileUnityFirstPass(InputAssemblyName, OutputDirectory, BuildDirectory, ProjectName);
+						DecompileUnityFirstPass(InputAssemblyName, OutputDirectory, ProjectRootDirectory, ProjectName);
 					}
-					return DecompileAsProject(InputAssemblyName, OutputDirectory, BuildDirectory, ProjectName);
+					return DecompileAsProject(InputAssemblyName, OutputDirectory, ProjectRootDirectory, ProjectName);
 				} else if (EntityTypes.Any()) {
 					var values = EntityTypes.SelectMany(v => v.Split(',', ';')).ToArray();
 					HashSet<TypeKind> kinds = TypesParser.ParseSelection(values);
@@ -217,21 +217,21 @@ Remarks:
 			return 0;
 		}
 
-		int DecompileUnityFirstPass(string assemblyFilename, string outputDirectory, string buildDirectory, string projectName = null)
+		int DecompileUnityFirstPass(string assemblyFilename, string outputDirectory, string projectRoot, string projectName = null)
 		{
 			if (Path.GetExtension(assemblyFilename).ToLowerInvariant() == ".dll")
 			{
 				string firstPassAssemblyFilename = Path.ChangeExtension(assemblyFilename, null) + "-firstpass.dll";
 				if (File.Exists(firstPassAssemblyFilename))
 				{
-					DecompileAsProject(firstPassAssemblyFilename, outputDirectory, buildDirectory,
+					DecompileAsProject(firstPassAssemblyFilename, outputDirectory, projectRoot,
 						string.IsNullOrEmpty(projectName) ? projectName : projectName + "-firstpass");
 				}
 			}
 			return 0;
 		}
 
-		int DecompileAsProject(string assemblyFileName, string outputDirectory, string buildDirectory, string projectName = null)
+		int DecompileAsProject(string assemblyFileName, string outputDirectory, string projectRoot, string projectName = null)
 		{
 			var module = new PEFile(assemblyFileName);
 			var resolver = new UniversalAssemblyResolver(assemblyFileName, false, module.Reader.DetectTargetFrameworkId());
@@ -243,7 +243,7 @@ Remarks:
                 resolver.AddSearchDirectory(UnityLibPath, true);
             }
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
-			decompiler.DecompileNamedProject(module, outputDirectory, buildDirectory, projectName);
+			decompiler.DecompileNamedProject(module, outputDirectory, projectRoot, projectName);
 			return 0;
 		}
 
