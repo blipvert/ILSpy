@@ -62,6 +62,9 @@ Remarks:
 		[Option("-U|--unity", "Activate Unity-specific behavior.", CommandOptionType.NoValue)]
 		public bool UnityFlag { get; private set; }
 
+		[Option("-2|--twopass", "Parse two-pass assembly.", CommandOptionType.NoValue)]
+		public bool TwoPassFlag { get; private set; }
+
 		[Option("-il|--ilcode", "Show IL code.", CommandOptionType.NoValue)]
 		public bool ShowILCodeFlag { get; }
 
@@ -108,9 +111,9 @@ Remarks:
 				Path.GetFileNameWithoutExtension(InputAssemblyName);
 			try {
 				if (CreateCompilableProjectFlag) {
-					if (UnityFlag)
+					if (TwoPassFlag)
 					{
-						DecompileUnityFirstPass(InputAssemblyName, OutputDirectory, ProjectRootDirectory, ProjectName);
+						DecompileProjectFirstPass(InputAssemblyName, OutputDirectory, ProjectRootDirectory, ProjectName);
 					}
 					return DecompileAsProject(InputAssemblyName, OutputDirectory, ProjectRootDirectory, ProjectName);
 				} else if (EntityTypes.Any()) {
@@ -216,7 +219,7 @@ Remarks:
 			return 0;
 		}
 
-		int DecompileUnityFirstPass(string assemblyFilename, string outputDirectory, string projectRoot, string projectName = null)
+		int DecompileProjectFirstPass(string assemblyFilename, string outputDirectory, string projectRoot, string projectName = null)
 		{
 			if (Path.GetExtension(assemblyFilename).ToLowerInvariant() == ".dll")
 			{
