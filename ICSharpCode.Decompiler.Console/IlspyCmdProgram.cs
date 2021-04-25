@@ -219,6 +219,32 @@ Remarks:
 			return 0;
 		}
 
+		class Progress : IProgress<DecompilationProgress>
+		{
+			int charPos = 0;
+			int count = 0;
+			public void Report(DecompilationProgress value)
+			{
+				System.Console.CursorVisible = false;
+				++count;
+				string totalStr = value.TotalNumberOfFiles.ToString();
+				string countStr = count.ToString();
+				if (totalStr.Length > countStr.Length)
+					countStr = (new string(' ', totalStr.Length - countStr.Length)) + countStr;
+				string outputLine = "  " + countStr + "/" + totalStr + " " + value.Status;
+				System.Console.Write('\r'+outputLine);
+				if (charPos > outputLine.Length)
+				{
+					System.Console.Write(new string(' ', charPos - outputLine.Length));
+					System.Console.Out.Flush();
+				}
+				charPos = outputLine.Length;
+				System.Console.CursorVisible = true;
+				if (count == value.TotalNumberOfFiles)
+					System.Console.WriteLine();
+			}
+		}
+
 		int DecompileProjectFirstPass(string assemblyFilename, string outputDirectory, string projectRoot, string projectName = null)
 		{
 			if (Path.GetExtension(assemblyFilename).ToLowerInvariant() == ".dll")
@@ -245,6 +271,7 @@ Remarks:
 				resolver.AddSearchDirectory(PrependReferencePaths[--i], true);
 			}
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
+			decompiler.ProgressIndicator = new Progress();
 			decompiler.DecompileNamedProject(module, outputDirectory, projectRoot, projectName);
 			return 0;
 		}
