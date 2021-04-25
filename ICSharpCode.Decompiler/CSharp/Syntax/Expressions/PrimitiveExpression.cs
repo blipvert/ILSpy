@@ -42,6 +42,7 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 		StringLiteral,
 		VerbatimStringLiteral,
 		CharLiteral,
+		LayerMask,
 	}
 
 	/// <summary>

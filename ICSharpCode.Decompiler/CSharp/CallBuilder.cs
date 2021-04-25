@@ -738,6 +738,11 @@ namespace ICSharpCode.Decompiler.CSharp
 					parameter = method.Parameters[i - firstParamIndex];
 				}
 				var arg = expressionBuilder.Translate(callArguments[i], parameter.Type);
+				if (parameter.Name == "layerMask")
+				{
+					if (arg.Expression is PrimitiveExpression pe)
+						pe.Format = LiteralFormat.LayerMask;
+				}
 				if (IsPrimitiveValueThatShouldBeNamedArgument(arg, method, parameter))
 				{
 					isPrimitiveValue.Set(arguments.Count);
