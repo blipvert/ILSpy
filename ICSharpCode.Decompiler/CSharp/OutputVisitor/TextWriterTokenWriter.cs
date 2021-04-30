@@ -379,25 +379,16 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			else if (value is IFormattable)
 			{
 				StringBuilder b = new StringBuilder();
-				bool uncheckedVal = false;
 				if (format == LiteralFormat.HexadecimalNumber)
 				{
 					var hexValue = value;
 					if ((value is int intValue) && (intValue < 0))
 					{
-#if false
-						b.Append("unchecked((int)");
-						uncheckedVal = true;
-#endif
 						b.Append("~");
 						hexValue = ~intValue;
 					}
 					else if ((value is long longValue) && (longValue < 0))
 					{
-#if false
-						b.Append("unchecked((long)");
-						uncheckedVal = true;
-#endif
 						b.Append("~");
 						hexValue = ~longValue;
 					}
@@ -415,10 +406,6 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				if (value is long || value is ulong)
 				{
 					b.Append("L");
-				}
-				if (uncheckedVal)
-				{
-					b.Append(")");
 				}
 				textWriter.Write(b.ToString());
 				column += b.Length;
