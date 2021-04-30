@@ -41,8 +41,7 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 		BinaryNumber,
 		StringLiteral,
 		VerbatimStringLiteral,
-		CharLiteral,
-		LayerMask,
+		CharLiteral
 	}
 
 	/// <summary>
@@ -66,6 +65,7 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 
 		object value;
 		LiteralFormat format;
+		string valueHint;
 
 		public object Value {
 			get { return this.value; }
@@ -81,6 +81,14 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 			set {
 				ThrowIfFrozen();
 				format = value;
+			}
+		}
+
+		public string ValueHint {
+			get { return this.valueHint; }
+			set {
+				ThrowIfFrozen();
+				this.valueHint = value;
 			}
 		}
 
