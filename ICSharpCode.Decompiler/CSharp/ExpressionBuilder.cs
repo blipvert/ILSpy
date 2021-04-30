@@ -562,8 +562,10 @@ namespace ICSharpCode.Decompiler.CSharp
 				parent = conv.Parent;
 			if (value >= 0 && value <= 9)
 				return false;
+#if false
 			if (value < 0 && type.GetSign() == Sign.Signed)
 				return false;
+#endif
 			switch (parent)
 			{
 				case BinaryNumericInstruction bni:

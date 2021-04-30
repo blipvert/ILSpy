@@ -382,18 +382,27 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				bool uncheckedVal = false;
 				if (format == LiteralFormat.HexadecimalNumber)
 				{
+					var hexValue = value;
 					if ((value is int intValue) && (intValue < 0))
 					{
+#if false
 						b.Append("unchecked((int)");
 						uncheckedVal = true;
+#endif
+						b.Append("~");
+						hexValue = ~intValue;
 					}
 					else if ((value is long longValue) && (longValue < 0))
 					{
+#if false
 						b.Append("unchecked((long)");
 						uncheckedVal = true;
+#endif
+						b.Append("~");
+						hexValue = ~longValue;
 					}
 					b.Append("0x");
-					b.Append(((IFormattable)value).ToString("X", NumberFormatInfo.InvariantInfo));
+					b.Append(((IFormattable)hexValue).ToString("X", NumberFormatInfo.InvariantInfo));
 				}
 				else
 				{
