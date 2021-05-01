@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -71,6 +71,7 @@
     <Compile Include="CSharp\SequencePointBuilder.cs" />
     <Compile Include="CSharp\ProjectDecompiler\TargetFramework.cs" />
     <Compile Include="CSharp\ProjectDecompiler\TargetServices.cs" />
+    <Compile Include="CSharp\Syntax\DefaultAstVisitor.cs" />
     <Compile Include="CSharp\Syntax\Expressions\DeclarationExpression.cs" />
     <Compile Include="CSharp\Syntax\Expressions\SwitchExpression.cs" />
     <Compile Include="CSharp\Syntax\Expressions\WithInitializerExpression.cs" />
