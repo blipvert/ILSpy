@@ -1759,6 +1759,20 @@ namespace ICSharpCode.Decompiler
 			}
 		}
 
+		bool dumpAstFlag = false;
+		[Category("DecompilerSettings.Other")]
+		[Description("DecompilerSettings.DumpAstFlag")]
+		public bool DumpAstFlag {
+			get { return dumpAstFlag; }
+			set {
+				if (dumpAstFlag != value)
+				{
+					dumpAstFlag = value;
+					OnPropertyChanged();
+				}
+			}
+		}
+
 		bool aggressiveScalarReplacementOfAggregates = false;
 
 		[Category("DecompilerSettings.Other")]
