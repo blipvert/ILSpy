@@ -101,7 +101,7 @@ Remarks:
 		[Option("--no-dead-stores", "Remove dead stores.", CommandOptionType.NoValue)]
 		public bool RemoveDeadStores { get; }
 
-		[Option("--dump-ast", "Dump AST as XML", CommandOptionType.NoValue)]
+		[Option("-xml|--dump-ast", "Dump AST as XML", CommandOptionType.NoValue)]
 		public bool DumpAstFlag { get; }
 
 		private int OnExecute(CommandLineApplication app)
