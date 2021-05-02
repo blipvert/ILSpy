@@ -25,6 +25,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Xml;
 
 using ICSharpCode.Decompiler.CSharp.OutputVisitor;
 using ICSharpCode.Decompiler.CSharp.Resolver;
@@ -42,6 +43,7 @@ using ICSharpCode.Decompiler.Semantics;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
 
+using CSharpPrimitiveType = ICSharpCode.Decompiler.CSharp.Syntax.PrimitiveType;
 using SRM = System.Reflection.Metadata;
 
 namespace ICSharpCode.Decompiler.CSharp
@@ -477,9 +479,24 @@ namespace ICSharpCode.Decompiler.CSharp
 
 		string SyntaxTreeToString(SyntaxTree syntaxTree)
 		{
+			return settings.DumpAstFlag ? SyntaxTreeToXml(syntaxTree) : SyntaxTreeToCSharp(syntaxTree);
+		}
+
+		string SyntaxTreeToCSharp(SyntaxTree syntaxTree)
+		{
 			StringWriter w = new StringWriter();
 			syntaxTree.AcceptVisitor(new CSharpOutputVisitor(w, settings.CSharpFormattingOptions));
 			return w.ToString();
+		}
+
+		string SyntaxTreeToXml(SyntaxTree syntaxTree)
+		{
+			var w = new StringWriter();
+			var xov = new XmlOutputVisitor(w);
+			xov.WriteSyntaxTree(syntaxTree);
+			xov.writer.Close();
+			return w.ToString();
+
 		}
 
 		/// <summary>
@@ -1266,17 +1283,17 @@ namespace ICSharpCode.Decompiler.CSharp
 					}
 					if (!method.MetadataToken.IsNil && !MemberIsHidden(module.PEFile, method.MetadataToken, settings))
 					{
-                        if (!method.IsAccessor && method.IsExplicitInterfaceImplementation)
-                        {
-    						var iprop = InferMissingProperty(method);
-    						if (iprop != null)
-	    					{
-                                // This method implements an interface accessor but not the corresponding property.
-                                // This is not valid in C#, so in order to keep the generated code compilable, we supply the 
-                                // missing property declaration, which can be trivially constructed from the interface declaration.
+						if (!method.IsAccessor && method.IsExplicitInterfaceImplementation)
+						{
+							var iprop = InferMissingProperty(method);
+							if (iprop != null)
+							{
+								// This method implements an interface accessor but not the corresponding property.
+								// This is not valid in C#, so in order to keep the generated code compilable, we supply the 
+								// missing property declaration, which can be trivially constructed from the interface declaration.
 								typeDecl.Members.Add(DoDecompile(iprop, decompileRun, decompilationContext.WithCurrentMember(iprop)));
 								continue;
-                            }
+							}
 						}
 						var memberDecl = DoDecompile(method, decompileRun, decompilationContext.WithCurrentMember(method));
 						typeDecl.Members.Add(memberDecl);
@@ -1816,7 +1833,7 @@ namespace ICSharpCode.Decompiler.CSharp
 			}
 		}
 
-		#region Sequence Points
+#region Sequence Points
 		/// <summary>
 		/// Creates sequence points for the given syntax tree.
 		/// 
@@ -1828,6 +1845,6 @@ namespace ICSharpCode.Decompiler.CSharp
 			syntaxTree.AcceptVisitor(spb);
 			return spb.GetSequencePoints();
 		}
-		#endregion
+#endregion
 	}
 }
