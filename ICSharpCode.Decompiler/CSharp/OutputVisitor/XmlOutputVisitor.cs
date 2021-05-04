@@ -124,7 +124,14 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 
 		private void WriteAttribute(string attributeName, object value)
 		{
-			writer.WriteAttributeString(attributeName, value.ToString());
+			try
+			{
+				writer.WriteAttributeString(attributeName, value.ToString());
+			}
+			catch (Exception)
+			{
+				throw;
+			}
 		}
 	}
 }
