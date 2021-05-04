@@ -133,5 +133,10 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				throw;
 			}
 		}
+
+		private void WriteComment(object comment)
+		{
+			writer.WriteComment(" " + comment.ToString().Replace(Environment.NewLine, " ") + " ");
+		}
 	}
 }
