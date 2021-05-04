@@ -42,6 +42,10 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			WriteStartElement(node.GetType().Name);
 
 			node.AcceptVisitor(this);
+			if (node is Expression && !(node.Parent is Expression))
+			{
+				WriteComment(node);
+			}
 
 			if (!node.IsNull)
 			{
