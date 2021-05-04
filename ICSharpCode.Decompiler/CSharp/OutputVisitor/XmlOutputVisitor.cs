@@ -40,6 +40,12 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		protected void VisitNode(AstNode node)
 		{
 			WriteStartElement(node.GetType().Name);
+			WriteAttribute("Role", node.Role);
+			var symbol = node.GetSymbol();
+			if (symbol != null)
+			{
+				WriteAttribute("Symbol", symbol.Name);
+			}
 
 			node.AcceptVisitor(this);
 			if (node is Expression && !(node.Parent is Expression))
