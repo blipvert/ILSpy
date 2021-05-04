@@ -33,7 +33,6 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			var settings = new XmlWriterSettings();
 			settings.Indent = true;
 			settings.CheckCharacters = false;
-			//			settings.ConformanceLevel = ConformanceLevel.Fragment;
 			return settings;
 		}
 
