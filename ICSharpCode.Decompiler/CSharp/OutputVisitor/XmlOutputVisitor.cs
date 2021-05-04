@@ -66,7 +66,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 
 		public override void VisitPrimitiveExpression(PrimitiveExpression primitiveExpression)
 		{
-			WriteAttribute("Type", primitiveExpression.Value.GetType());
+			WriteAttribute("Type", primitiveExpression.Value.GetType().FullName);
 			WriteAttribute("Value", primitiveExpression.Value);
 		}
 
