@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,7 +15,7 @@ using Attribute = ICSharpCode.Decompiler.CSharp.Syntax.Attribute;
 namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 {
 
-	public class XmlOutputVisitor : DefaultAstVisitor
+	public class XmlOutputVisitor : AbstracttAstVisitor
 	{
 		readonly public XmlWriter writer;
 

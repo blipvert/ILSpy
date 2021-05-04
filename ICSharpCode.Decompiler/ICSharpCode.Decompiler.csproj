@@ -72,7 +72,7 @@
     <Compile Include="CSharp\SequencePointBuilder.cs" />
     <Compile Include="CSharp\ProjectDecompiler\TargetFramework.cs" />
     <Compile Include="CSharp\ProjectDecompiler\TargetServices.cs" />
-    <Compile Include="CSharp\Syntax\DefaultAstVisitor.cs" />
+    <Compile Include="CSharp\Syntax\AbstracttAstVisitor.cs" />
     <Compile Include="CSharp\Syntax\Expressions\DeclarationExpression.cs" />
     <Compile Include="CSharp\Syntax\Expressions\SwitchExpression.cs" />
     <Compile Include="CSharp\Syntax\Expressions\WithInitializerExpression.cs" />

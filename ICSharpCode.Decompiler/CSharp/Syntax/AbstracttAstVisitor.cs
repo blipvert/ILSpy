@@ -22,7 +22,7 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 	/// <summary>
 	/// AST visitor.
 	/// </summary>
-	public abstract class DefaultAstVisitor : IAstVisitor
+	public abstract class AbstracttAstVisitor : IAstVisitor
 	{
 		public virtual void VisitAnonymousMethodExpression(AnonymousMethodExpression anonymousMethodExpression) {}
 		public virtual void VisitAnonymousTypeCreateExpression(AnonymousTypeCreateExpression anonymousTypeCreateExpression) {}
