@@ -150,7 +150,8 @@ Remarks:
 					output.WriteLine(vInfo);
 				} else {
 					if (outputDirectorySpecified) {
-						output = File.CreateText(Path.Combine(OutputDirectory, outputName) + ".decompiled.cs");
+						output = File.CreateText(Path.Combine(OutputDirectory, outputName) +
+							(DumpAstFlag ? ".ast.xml" : ".decompiled.cs"));
 					}
 
 					return Decompile(InputAssemblyName, output, TypeName);
@@ -285,10 +286,10 @@ Remarks:
 			CSharpDecompiler decompiler = GetDecompiler(assemblyFileName);
 
 			if (typeName == null) {
-				output.Write(decompiler.DecompileWholeModuleAsString());
+				decompiler.DecompileWholeModuleToOutput(output);
 			} else {
 				var name = new FullTypeName(typeName);
-				output.Write(decompiler.DecompileTypeAsString(name));
+				decompiler.DecompileTypeToOutput(name, output);
 			}
 			return 0;
 		}

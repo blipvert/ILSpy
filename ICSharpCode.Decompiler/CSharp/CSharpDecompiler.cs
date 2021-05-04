@@ -480,24 +480,29 @@ namespace ICSharpCode.Decompiler.CSharp
 
 		string SyntaxTreeToString(SyntaxTree syntaxTree)
 		{
-			return settings.DumpAstFlag ? SyntaxTreeToXml(syntaxTree) : SyntaxTreeToCSharp(syntaxTree);
-		}
-
-		string SyntaxTreeToCSharp(SyntaxTree syntaxTree)
-		{
 			StringWriter w = new StringWriter();
-			syntaxTree.AcceptVisitor(new CSharpOutputVisitor(w, settings.CSharpFormattingOptions));
+			SyntaxTreeToOutput(syntaxTree, w);
 			return w.ToString();
 		}
 
-		string SyntaxTreeToXml(SyntaxTree syntaxTree)
+		void SyntaxTreeToOutput(SyntaxTree syntaxTree, TextWriter w)
 		{
-			var w = new StringWriter();
+			if (settings.DumpAstFlag)
+				SyntaxTreeToXml(syntaxTree, w);
+			else
+				SyntaxTreeToCSharp(syntaxTree, w);
+		}
+
+		void SyntaxTreeToCSharp(SyntaxTree syntaxTree, TextWriter w)
+		{
+			syntaxTree.AcceptVisitor(new CSharpOutputVisitor(w, settings.CSharpFormattingOptions));
+		}
+
+		void SyntaxTreeToXml(SyntaxTree syntaxTree, TextWriter w)
+		{
 			var xov = new XmlOutputVisitor(w);
 			xov.WriteSyntaxTree(syntaxTree);
 			xov.writer.Close();
-			return w.ToString();
-
 		}
 
 		/// <summary>
@@ -869,6 +874,11 @@ namespace ICSharpCode.Decompiler.CSharp
 			return SyntaxTreeToString(DecompileWholeModuleAsSingleFile());
 		}
 
+		public void DecompileWholeModuleToOutput(TextWriter output)
+		{
+			SyntaxTreeToOutput(DecompileWholeModuleAsSingleFile(), output);
+		}
+
 		/// <summary>
 		/// Decompile the given types.
 		/// </summary>
@@ -945,6 +955,11 @@ namespace ICSharpCode.Decompiler.CSharp
 		public string DecompileTypeAsString(FullTypeName fullTypeName)
 		{
 			return SyntaxTreeToString(DecompileType(fullTypeName));
+		}
+
+		public void DecompileTypeToOutput(FullTypeName fullTypeName, TextWriter output)
+		{
+			SyntaxTreeToOutput(DecompileType(fullTypeName), output);
 		}
 
 		/// <summary>
