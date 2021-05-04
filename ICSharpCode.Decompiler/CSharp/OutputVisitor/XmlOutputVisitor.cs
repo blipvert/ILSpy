@@ -74,19 +74,19 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		}
 		public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
 		{
-			WriteComment(GetMethodSignature(methodDeclaration));
+			WriteComment(methodDeclaration.GetSignature());
 			base.VisitMethodDeclaration(methodDeclaration);
 		}
 
 		public override void VisitPropertyDeclaration(PropertyDeclaration propertyDeclaration)
 		{
-			WriteComment(GetPropertySignature(propertyDeclaration));
+			WriteComment(propertyDeclaration.GetSignature());
 			base.VisitPropertyDeclaration(propertyDeclaration);
 		}
 
 		public override void VisitFieldDeclaration(FieldDeclaration fieldDeclaration)
 		{
-			WriteComment(GetFieldSignature(fieldDeclaration));
+			WriteComment(fieldDeclaration.GetSignature());
 			base.VisitFieldDeclaration(fieldDeclaration);
 		}
 
@@ -170,17 +170,26 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			writer.WriteComment(" " + comment.ToString().Replace(Environment.NewLine, " ") + " ");
 		}
 
-		private string GetFieldSignature(FieldDeclaration fieldDeclaration)
+	}
+
+	public static class XmlOutputVisitorExtensions
+    {
+		public static string GetSignature(this FieldDeclaration fieldDeclaration)
 		{
 			return GetEntitySignature(fieldDeclaration) + fieldDeclaration.GetSymbol().Name;
 		}
 
-		private string GetPropertySignature(PropertyDeclaration propertyDeclaration)
+		public static string GetSignature(this PropertyDeclaration propertyDeclaration)
 		{
 			return GetEntitySignature(propertyDeclaration);
 		}
 
-		private string GetMethodSignature(MethodDeclaration methodDeclaration)
+		public static string GetSignature(this MethodDeclaration methodDeclaration)
+		{
+			return GetMethodSignature(methodDeclaration);
+		}
+
+		private static string GetMethodSignature(MethodDeclaration methodDeclaration)
 		{
 			string methDecl = GetEntitySignature(methodDeclaration);
 			bool sep = false;
@@ -212,7 +221,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			return methDecl;
 		}
 
-		private string GetEntitySignature(EntityDeclaration entityDeclaration)
+		private static string GetEntitySignature(EntityDeclaration entityDeclaration)
 		{
 			string methDecl = "";
 			bool sep = false;
@@ -236,5 +245,6 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				methDecl += " ";
 			return methDecl + entityDeclaration.ReturnType.ToString() + " " + entityDeclaration.NameToken.ToString();
 		}
+
 	}
 }
