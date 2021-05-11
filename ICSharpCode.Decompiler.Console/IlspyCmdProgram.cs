@@ -104,6 +104,9 @@ Remarks:
 		[Option("-xml|--dump-ast", "Dump AST as XML", CommandOptionType.NoValue)]
 		public bool DumpAstFlag { get; }
 
+		[Option("-null|--no-output", "Send output to null stream", CommandOptionType.NoValue)]
+		public bool NullOutput { get; }
+
 		private int OnExecute(CommandLineApplication app)
 		{
 			TextWriter output = System.Console.Out;
@@ -113,6 +116,10 @@ Remarks:
                 !string.IsNullOrEmpty(ProjectName) ? ProjectName :
 				Path.GetFileNameWithoutExtension(InputAssemblyName);
 			try {
+				if (NullOutput)
+				{
+					output = TextWriter.Null;
+				} 
 				if (CreateCompilableProjectFlag) {
 					if (TwoPassFlag)
 					{
