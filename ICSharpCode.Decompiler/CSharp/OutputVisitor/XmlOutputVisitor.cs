@@ -9,6 +9,9 @@ using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.CSharp.Syntax.PatternMatching;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
+using ICSharpCode.Decompiler.Semantics;
+using ICSharpCode.Decompiler.CSharp.Transforms;
+using ICSharpCode.Decompiler.CSharp.Resolver;
 
 using Attribute = ICSharpCode.Decompiler.CSharp.Syntax.Attribute;
 
@@ -39,13 +42,24 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		protected void VisitNode(AstNode node)
 		{
 			WriteStartElement(node.GetType().Name);
+#if false
 			WriteAttribute("Role", node.Role);
+#endif
 			var symbol = node.GetSymbol();
 			if (symbol != null)
 			{
 				WriteAttribute("Symbol", symbol.Name);
 			}
-
+			var resolveResult = node.Annotation<ResolveResult>();
+			if (resolveResult != null)
+			{
+				WriteAttribute("ResolveResult", resolveResult.GetType().Name);
+				if (resolveResult is ILVariableResolveResult ilvrr)
+				{
+					WriteAttribute("Variable", ilvrr.Variable.Name);
+				}
+			}
+			WriteContextAttributes(node.Annotation<SymbolicContext>());
 			node.AcceptVisitor(this);
 			if (node is Expression && !(node.Parent is Expression))
 			{
@@ -70,6 +84,18 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 
 		public override void VisitInvocationExpression(InvocationExpression invocationExpression)
 		{
+			bool hasArgMap = false;
+			var resolveResult = invocationExpression.Annotation<CSharpInvocationResolveResult>();
+			if (resolveResult != null)
+			{
+				var argmap = resolveResult.GetArgumentToParameterMap();
+				if (argmap != null)
+					hasArgMap = true;
+			}
+			if (hasArgMap)
+			{
+				WriteAttribute("Mapped", true);
+			}
 			base.VisitInvocationExpression(invocationExpression);
 		}
 		public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
@@ -135,6 +161,19 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			else
 			{
 				base.VisitCSharpTokenNode(cSharpTokenNode);
+			}
+		}
+
+		private void WriteContextAttributes(SymbolicContext symbolicContext)
+		{
+			if (symbolicContext != null)
+			{
+				WriteAttribute("Context", symbolicContext.InferenceNumber);
+				var representation = symbolicContext.Representation;
+				if (representation != null)
+				{
+					WriteAttribute("Representation", representation.Name);
+				}
 			}
 		}
 
