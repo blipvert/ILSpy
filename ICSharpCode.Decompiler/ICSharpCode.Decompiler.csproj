@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -421,6 +421,7 @@
     <Compile Include="TypeSystem\Implementation\NullabilityAnnotatedType.cs" />
     <Compile Include="TypeSystem\TupleType.cs" />
     <Compile Include="TypeSystem\TypeProvider.cs" />
+    <Compile Include="Util\AutoInsertDictionary.cs" />
     <Compile Include="Util\FileUtility.cs" />
     <Compile Include="Util\GraphVizGraph.cs" />
     <Compile Include="Util\KeyComparer.cs" />
