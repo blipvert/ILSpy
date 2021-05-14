@@ -176,7 +176,6 @@ namespace ICSharpCode.Decompiler.CSharp
 		public static List<IAstTransform> GetAstTransforms()
 		{
 			return new List<IAstTransform> {
-				new ReplaceLiteralsWithConstants(),
 				new PatternStatementTransform(),
 				new ReplaceMethodCallsWithOperators(), // must run before DeclareVariables.EnsureExpressionStatementsAreValid
 				new IntroduceUnsafeModifier(),
@@ -193,6 +192,7 @@ namespace ICSharpCode.Decompiler.CSharp
 				new FlattenSwitchBlocks(),
 				new FixNameCollisions(),
 				new AddXmlDocumentationTransform(),
+				new ReplaceLiteralsWithConstants(),
 			};
 		}
 
