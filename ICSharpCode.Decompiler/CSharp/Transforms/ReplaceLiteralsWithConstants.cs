@@ -108,18 +108,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
 		{
-			SymbolicContext variableContext = mergeContext;
+			if (variable is null)
+				return mergeContext;
 
-			if (variable != null)
+			if (variableContextMap.TryGetValue(variable, out var variableContext))
 			{
-				if (variableContextMap.TryGetValue(variable, out variableContext))
-				{
-					variableContext.Merge(mergeContext);
-				}
-				else
-				{
-					variableContextMap.Add(variable, variableContext = mergeContext.Ensure());
-				}
+				variableContext.Merge(mergeContext);
+			}
+			else
+			{
+				variableContextMap.Add(variable, variableContext = mergeContext.Ensure());
 			}
 			return variableContext;
 		}
