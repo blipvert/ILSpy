@@ -71,7 +71,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			var symbol = node.GetSymbol();
 			if (symbol != null)
 			{
-				WriteAttribute("Symbol", symbol.Name);
+				WriteAttribute("Symbol", symbol.Name, true);
 			}
 #if false
 			var resolveResult = node.Annotation<ResolveResult>();
