@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -78,6 +78,15 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			if (variable != null)
 			{
 				WriteAttribute("Variable", variable.Name, true);
+			}
+			var parameter = node.Annotation<InvocationParameter>();
+			if (parameter != null)
+			{
+				WriteAttribute("ParameterId", parameter.uniqueId);
+				WriteAttribute("ParameterSymbol", parameter.parameter.Name);
+				WriteAttribute("ParameterSymbolType", parameter.parameter.GetType().Name);
+				if (parameter.Variable is not null)
+					WriteAttribute("ParameterVariable", parameter.Variable.Name);
 			}
 #if false
 			var resolveResult = node.Annotation<ResolveResult>();
