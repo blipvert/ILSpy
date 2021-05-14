@@ -106,19 +106,19 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
 
-		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext symbolicContext = null)
+		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
 		{
-			SymbolicContext variableContext = symbolicContext;
+			SymbolicContext variableContext = mergeContext;
 
 			if (variable != null)
 			{
 				if (variableContextMap.TryGetValue(variable, out variableContext))
 				{
-					variableContext.Merge(symbolicContext);
+					variableContext.Merge(mergeContext);
 				}
 				else
 				{
-					variableContextMap.Add(variable, variableContext = symbolicContext.Ensure());
+					variableContextMap.Add(variable, variableContext = mergeContext.Ensure());
 				}
 			}
 			return variableContext;
