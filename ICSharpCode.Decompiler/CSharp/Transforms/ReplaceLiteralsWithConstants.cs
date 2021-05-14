@@ -8,6 +8,7 @@ using ICSharpCode.Decompiler.CSharp.Syntax.PatternMatching;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
 using ICSharpCode.Decompiler.IL;
+using ICSharpCode.Decompiler.Semantics;
 
 namespace ICSharpCode.Decompiler.CSharp.Transforms
 {
@@ -108,6 +109,26 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	{
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
 
+		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
+
+		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext symbolicContext = null)
+		{
+			SymbolicContext variableContext = symbolicContext;
+
+			if (variable != null)
+			{
+				if (variableContextMap.TryGetValue(variable, out variableContext))
+				{
+					variableContext.Merge(symbolicContext);
+				}
+				else
+				{
+					variableContextMap.Add(variable, variableContext = symbolicContext.Ensure());
+				}
+			}
+			return variableContext;
+		}
+
 		public override int VisitIdentifier(Identifier identifier, SymbolicContext data)
 		{
 			if (data != null)
@@ -129,7 +150,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		protected override int VisitChildren(AstNode node, SymbolicContext symbolicContext)
 		{
-			node.SaveContext(symbolicContext);
+			node.SaveContext(symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext));
 			return base.VisitChildren(node, node.HasSymbolicContext() ? symbolicContext.Ensure() : null);
 		}
 
@@ -165,6 +186,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public static SymbolicContext Ensure(this SymbolicContext context)
 		{
 			return context ?? SymbolicContext.Create();
+		}
+
+		public static ILVariable GetILVariable(this AstNode node)
+		{
+			if (node.Annotation<ResolveResult>() is ILVariableResolveResult rr)
+				return rr.Variable;
+			else
+				return null;
 		}
 
 		public static void SaveContext(this AstNode node, SymbolicContext symbolicContext)
