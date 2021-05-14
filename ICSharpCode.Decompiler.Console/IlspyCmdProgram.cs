@@ -104,6 +104,9 @@ Remarks:
 		[Option("-xml|--dump-ast", "Dump AST as XML", CommandOptionType.NoValue)]
 		public bool DumpAstFlag { get; }
 
+		[Option("--progress", "Display decompilation progress", CommandOptionType.NoValue)]
+		public bool ShowProgress { get; }
+
 		[Option("-null|--no-output", "Send output to null stream", CommandOptionType.NoValue)]
 		public bool NullOutput { get; }
 
@@ -291,6 +294,8 @@ Remarks:
 		int Decompile(string assemblyFileName, TextWriter output, string typeName = null)
 		{
 			CSharpDecompiler decompiler = GetDecompiler(assemblyFileName);
+			if (ShowProgress)
+				decompiler.ProgressIndicator = new Progress();
 
 			if (typeName == null) {
 				decompiler.DecompileWholeModuleToOutput(output);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 Daniel Grunwald
+// Copyright (c) 2014 Daniel Grunwald
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -28,6 +28,7 @@ using System.Threading;
 using System.Xml;
 
 using ICSharpCode.Decompiler.CSharp.OutputVisitor;
+using ICSharpCode.Decompiler.CSharp.ProjectDecompiler;
 using ICSharpCode.Decompiler.CSharp.Resolver;
 using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.CSharp.Syntax.PatternMatching;
@@ -228,6 +229,8 @@ namespace ICSharpCode.Decompiler.CSharp
 		public IList<IAstTransform> AstTransforms {
 			get { return astTransforms; }
 		}
+
+		public IProgress<DecompilationProgress> ProgressIndicator { get; set; }
 
 		/// <summary>
 		/// Creates a new <see cref="CSharpDecompiler"/> instance from the given <paramref name="fileName"/> using the given <paramref name="settings"/>.
@@ -559,9 +562,12 @@ namespace ICSharpCode.Decompiler.CSharp
 		{
 			string currentNamespace = null;
 			AstNode groupNode = null;
+			var total = types.Count();
+			var progress = ProgressIndicator;
 			foreach (var typeDefHandle in types)
 			{
 				var typeDef = module.GetDefinition(typeDefHandle);
+				progress?.Report(new DecompilationProgress(total, typeDef.Name));
 				if (typeDef.Name == "<Module>" && typeDef.Members.Count == 0)
 					continue;
 				if (MemberIsHidden(module.PEFile, typeDefHandle, settings))
