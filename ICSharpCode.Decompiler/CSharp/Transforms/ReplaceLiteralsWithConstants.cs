@@ -74,15 +74,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public readonly int ContextNumber;
 		public int InferenceNumber => inference.OriginalContextNumber;
 
-		private SymbolicContext(SymbolicRepresentation representation, int contextNumber)
+		public SymbolicContext(SymbolicRepresentation representation = null)
 		{
-			inference = new(representation, contextNumber);
-			ContextNumber = contextNumber;
-		}
-
-		public static SymbolicContext Create(SymbolicRepresentation representation = null)
-		{
-			return new(representation, ++contextCount);
+			inference = new(representation, ++contextCount);
+			ContextNumber = contextCount;
 		}
 
 		public void Merge(SymbolicContext other)
@@ -185,7 +180,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public static SymbolicContext Ensure(this SymbolicContext context)
 		{
-			return context ?? SymbolicContext.Create();
+			return context ?? new();
 		}
 
 		public static ILVariable GetILVariable(this AstNode node)
