@@ -42,4 +42,14 @@ namespace ICSharpCode.Decompiler.Util
 			}
 		}
 	}
+
+	public class AutoValueDictionary<TKey, TValue> : AutoInsertDictionary<TKey, TValue>
+		where TValue : new()
+	{
+		public override TValue NewValue(TKey key)
+		{
+			return new();
+		}
+	}
+
 }
