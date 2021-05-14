@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,6 +21,23 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 	public class XmlOutputVisitor : AbstracttAstVisitor
 	{
 		readonly public XmlWriter writer;
+
+		class UidMapper : Dictionary<object, int>
+		{
+			private int count = 0;
+
+			public string Tag(object o)
+			{
+				if (!TryGetValue(o, out int uid))
+				{
+					uid = ++count;
+					Add(o, uid);
+				}
+				return o.ToString() + "@" + uid.ToString();
+			}
+		}
+
+		private UidMapper uidMapper = new();
 
 		public XmlOutputVisitor(TextWriter textWriter)
 		{
@@ -190,6 +207,11 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		private void WriteString(string s)
 		{
 			writer.WriteString(s);
+		}
+
+		private void WriteAttribute(string attributeName, object value, bool uid)
+		{
+			WriteAttribute(attributeName, uid ? uidMapper.Tag(value) : value);
 		}
 
 		private void WriteAttribute(string attributeName, object value)
