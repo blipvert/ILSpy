@@ -65,6 +65,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			{
 				WriteAttribute("Symbol", symbol.Name);
 			}
+#if false
 			var resolveResult = node.Annotation<ResolveResult>();
 			if (resolveResult != null)
 			{
@@ -74,6 +75,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 					WriteAttribute("Variable", ilvrr.Variable.Name);
 				}
 			}
+#endif
 			WriteContextAttributes(node.Annotation<SymbolicContext>());
 			node.AcceptVisitor(this);
 			if (node is Expression && !(node.Parent is Expression))
