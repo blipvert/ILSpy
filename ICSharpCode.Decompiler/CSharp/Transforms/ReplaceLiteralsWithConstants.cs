@@ -22,12 +22,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	public class SymbolicRepresentationIncompatibleMerge : Exception
 	{
 		public SymbolicRepresentationIncompatibleMerge() { }
-
-		public SymbolicRepresentationIncompatibleMerge(string message)
-			: base(message) { }
-
-		public SymbolicRepresentationIncompatibleMerge(string message, Exception inner)
-			: base(message, inner) { }
+		public SymbolicRepresentationIncompatibleMerge(string message) : base(message) { }
 	}
 
 	public class SymbolicRepresentation
