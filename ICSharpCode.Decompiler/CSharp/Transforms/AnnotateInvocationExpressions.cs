@@ -3,12 +3,10 @@ using System.Linq;
 using System.Collections.Generic;
 
 using ICSharpCode.Decompiler.CSharp.Syntax;
-using ICSharpCode.Decompiler.CSharp.Syntax.PatternMatching;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
 using ICSharpCode.Decompiler.IL;
 using ICSharpCode.Decompiler.CSharp.Resolver;
-using ICSharpCode.Decompiler.Semantics;
 
 namespace ICSharpCode.Decompiler.CSharp.Transforms
 {
@@ -67,12 +65,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 	public class AnnotateInvocationExpressions : IAstTransform
 	{
-		class MethodMapBuilder : DepthFirstAstVisitor
-		{
-			public readonly MethodAutoMap methodMap = new();
-			public readonly Dictionary<IParameter, InvocationParameter> parameterMap = new();
+		public readonly MethodAutoMap methodMap = new();
+		public readonly Dictionary<IParameter, InvocationParameter> parameterMap = new();
 
-			public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
+		private void BuildMethodMap(AstNode rootNode)
+		{
+			foreach (var methodDeclaration in rootNode.DescendantsAndSelf.OfType<MethodDeclaration>())
 			{
 				if (methodDeclaration.GetSymbol() is IMethod method)
 				{
@@ -88,26 +86,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						parameterMap.Add(invocationParameter.parameter, invocationParameter);
 					}
 				}
-				base.VisitMethodDeclaration(methodDeclaration);
-			}
-
-			public static MethodAutoMap Process(AstNode node)
-			{
-				MethodMapBuilder builder = new();
-				builder.VisitChildren(node);
-				return builder.methodMap;
 			}
 		}
 
-		class InvocationAnnotator : DepthFirstAstVisitor
+		private void AnnotateInvocations(AstNode rootNode)
 		{
-			protected readonly MethodAutoMap methodMap;
-
-			public InvocationAnnotator(MethodAutoMap methodMap)
-			{
-				this.methodMap = methodMap;
-			}
-			public override void VisitInvocationExpression(InvocationExpression invocationExpression)
+			foreach (var invocationExpression in rootNode.DescendantsAndSelf.OfType<InvocationExpression>())
 			{
 				if (invocationExpression.GetSymbol() is IMethod method)
 				{
@@ -128,20 +112,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						}
 					}
 				}
-				base.VisitInvocationExpression(invocationExpression);
-			}
-
-			public static void Process(AstNode node)
-			{
-				var methodMap = MethodMapBuilder.Process(node);
-				InvocationAnnotator annotator = new(methodMap);
-				annotator.VisitChildren(node);
 			}
 		}
 
 		void IAstTransform.Run(AstNode node, TransformContext context)
 		{
-			InvocationAnnotator.Process(node);
+			BuildMethodMap(node);
+			AnnotateInvocations(node);
 		}
 	}
 }
