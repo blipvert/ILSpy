@@ -70,6 +70,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		class MethodMapBuilder : DepthFirstAstVisitor
 		{
 			public readonly MethodAutoMap methodMap = new();
+			public readonly Dictionary<IParameter, InvocationParameter> parameterMap = new();
 
 			public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
 			{
@@ -81,6 +82,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						var invocationParameter = invocationMethod.parameters[index];
 						invocationParameter.Variable = parameterDeclaration.GetILVariable();
 						parameterDeclaration.AddAnnotation(invocationParameter);
+					}
+					foreach (var invocationParameter in invocationMethod.parameters)
+					{
+						parameterMap.Add(invocationParameter.parameter, invocationParameter);
 					}
 				}
 				base.VisitMethodDeclaration(methodDeclaration);
