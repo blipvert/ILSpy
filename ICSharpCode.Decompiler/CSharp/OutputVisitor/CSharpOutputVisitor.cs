@@ -26,6 +26,7 @@ using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.CSharp.Syntax.PatternMatching;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
+using ICSharpCode.Decompiler.CSharp.Transforms;
 
 using Attribute = ICSharpCode.Decompiler.CSharp.Syntax.Attribute;
 
@@ -1129,6 +1130,15 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			{
 				writer.WriteComment(CommentType.MultiLine, primitiveExpression.ValueHint);
 			}
+			else
+			{
+				var valueHint = primitiveExpression.Annotation<SymbolicContext>()?.Representation?.Name;
+				if (!string.IsNullOrEmpty(valueHint))
+				{
+					writer.WriteComment(CommentType.MultiLine, valueHint);
+				}
+			}
+
 			writer.WritePrimitiveValue(primitiveExpression.Value, primitiveExpression.Format);
 			isAfterSpace = false;
 			EndNode(primitiveExpression);
