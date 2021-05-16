@@ -138,7 +138,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		protected override int VisitChildren(AstNode node, SymbolicContext symbolicContext)
 		{
-			node.SaveContext(symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext));
+			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
+			var parameter = node.Annotation<InvocationParameter>();
+			if (parameter is not null)
+			{
+				var variable = parameter.Variable;
+				if (variable is not null)
+				{
+					symbolicContext = GetVariableContext(variable, symbolicContext);
+				}
+			}
+			node.SaveContext(symbolicContext);
 			return base.VisitChildren(node, node.HasSymbolicContext() ? symbolicContext.Ensure() : null);
 		}
 
