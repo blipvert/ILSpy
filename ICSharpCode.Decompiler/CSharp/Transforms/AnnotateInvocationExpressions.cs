@@ -64,10 +64,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 	}
 
+	public class ParameterAutoMap : AutoInsertDictionary<IParameter, InvocationParameter>
+	{
+		public override InvocationParameter NewValue(IParameter parameter)
+		{
+			return new(parameter);
+		}
+	}
+
 	public class AnnotateInvocationExpressions : IAstTransform
 	{
 		public readonly MethodAutoMap methodMap = new();
-		public readonly Dictionary<IParameter, InvocationParameter> parameterMap = new();
+		public readonly ParameterAutoMap parameterMap = new();
 
 		private void BuildMethodMap(AstNode rootNode)
 		{
