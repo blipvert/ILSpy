@@ -106,13 +106,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					if (rr != null)
 					{
 						var argMap = rr.GetArgumentToParameterMap();
-						int argIdx = 0;
-						foreach (var argu in invocationExpression.Arguments)
+						foreach (var (index,argument) in invocationExpression.Arguments.WithIndex())
 						{
-							var parm = invocationMethod.GetParameter(argMap == null ? argIdx : argMap[argIdx]);
+							var parm = invocationMethod.GetParameter(argMap == null ? index : argMap[index]);
 							if (parm is not null)
 							{
-								argu.AddAnnotation(parm);
+								argument.AddAnnotation(parm);
 							}
 							++argIdx;
 						}
