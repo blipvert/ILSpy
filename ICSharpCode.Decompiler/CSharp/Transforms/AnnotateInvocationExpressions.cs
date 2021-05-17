@@ -89,9 +89,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						var invocationParameter = invocationMethod.parameters[index];
 						invocationParameter.Variable = parameterDeclaration.GetILVariable();
 						parameterDeclaration.AddAnnotation(invocationParameter);
-					}
-					foreach (var invocationParameter in invocationMethod.parameters)
-					{
 						parameterMap.Add(invocationParameter.parameter, invocationParameter);
 					}
 				}
