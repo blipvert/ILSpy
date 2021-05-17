@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -29,9 +29,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					throw new InvalidOperationException("Parameter variable changed");
 			}
 		}
-		public InvocationParameter(IParameter parameter)
+		public InvocationParameter(IParameter parameter, ILVariable variable = null)
 		{
 			this.parameter = parameter;
+			this.variable = variable;
 			uniqueId = ++counter;
 		}
 	}
