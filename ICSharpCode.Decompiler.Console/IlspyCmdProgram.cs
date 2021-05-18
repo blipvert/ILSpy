@@ -249,7 +249,7 @@ Remarks:
 				string countStr = count.ToString();
 				if (totalStr.Length > countStr.Length)
 					countStr = (new string(' ', totalStr.Length - countStr.Length)) + countStr;
-				string outputLine = "  " + countStr + "/" + totalStr + " " + value.Status;
+				string outputLine = "  " + countStr + "/" + totalStr + " " + value.Status + "        ";
 				System.Console.Write('\r'+outputLine);
 				if (charPos > outputLine.Length)
 				{
