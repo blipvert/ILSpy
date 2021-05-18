@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2014 Daniel Grunwald
+// Copyright (c) 2014 Daniel Grunwald
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this
 // software and associated documentation files (the "Software"), to deal in the Software
@@ -567,26 +567,32 @@ namespace ICSharpCode.Decompiler.CSharp
 			foreach (var typeDefHandle in types)
 			{
 				var typeDef = module.GetDefinition(typeDefHandle);
-				progress?.Report(new DecompilationProgress(total, typeDef.Name));
-				if (typeDef.Name == "<Module>" && typeDef.Members.Count == 0)
-					continue;
-				if (MemberIsHidden(module.PEFile, typeDefHandle, settings))
-					continue;
-				if (string.IsNullOrEmpty(typeDef.Namespace))
+				try
 				{
-					groupNode = syntaxTree;
-				}
-				else
-				{
-					if (currentNamespace != typeDef.Namespace)
+					if (typeDef.Name == "<Module>" && typeDef.Members.Count == 0)
+						continue;
+					if (MemberIsHidden(module.PEFile, typeDefHandle, settings))
+						continue;
+					if (string.IsNullOrEmpty(typeDef.Namespace))
 					{
-						groupNode = new NamespaceDeclaration(typeDef.Namespace);
-						syntaxTree.AddChild(groupNode, SyntaxTree.MemberRole);
+						groupNode = syntaxTree;
 					}
+					else
+					{
+						if (currentNamespace != typeDef.Namespace)
+						{
+							groupNode = new NamespaceDeclaration(typeDef.Namespace);
+							syntaxTree.AddChild(groupNode, SyntaxTree.MemberRole);
+						}
+					}
+					currentNamespace = typeDef.Namespace;
+					var typeDecl = DoDecompile(typeDef, decompileRun, decompilationContext.WithCurrentTypeDefinition(typeDef));
+					groupNode.AddChild(typeDecl, SyntaxTree.MemberRole);
 				}
-				currentNamespace = typeDef.Namespace;
-				var typeDecl = DoDecompile(typeDef, decompileRun, decompilationContext.WithCurrentTypeDefinition(typeDef));
-				groupNode.AddChild(typeDecl, SyntaxTree.MemberRole);
+				finally
+				{
+					progress?.Report(new DecompilationProgress(total, typeDef.Name));
+				}
 			}
 		}
 
