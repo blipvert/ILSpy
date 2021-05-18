@@ -240,7 +240,34 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitInvocationExpression(InvocationExpression invocationExpression, SymbolicContext symbolicContext)
 		{
-			return base.VisitInvocationExpression(invocationExpression, symbolicContext);
+			UpdateSymbolicContextForNode(invocationExpression, ref symbolicContext);
+			if (invocationExpression.GetSymbol() is IMethod method)
+			{
+				var invocationMethod = methodMap[method];
+				var rr = invocationExpression.Annotation<CSharpInvocationResolveResult>();
+				if (rr != null)
+				{
+					var argMap = rr.GetArgumentToParameterMap();
+					int argumentIndex = 0;
+					foreach (var child in invocationExpression.Children)
+					{
+						symbolicContext = null;
+						if (child.Role == Roles.Argument)
+						{
+							var invocationParameter = invocationMethod.GetParameter(argumentIndex++, argMap);
+							if (invocationParameter is not null)
+							{
+								var variable = invocationParameter.Variable;
+								if (variable is not null)
+									symbolicContext = GetVariableContext(variable, symbolicContext);
+								SetRepresentation(ref symbolicContext, invocationParameter.parameter.Name);
+							}
+						}
+						child.AcceptVisitor(this, symbolicContext);
+					}
+				}
+			}
+			return default;
 		}
 
 		protected override int VisitChildren(AstNode node, SymbolicContext symbolicContext)
