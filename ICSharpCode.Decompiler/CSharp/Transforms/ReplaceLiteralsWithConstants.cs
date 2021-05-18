@@ -19,6 +19,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	/// This is a crock.
 	/// </remarks>
 
+	#region SymbolicRepresentation
 	public class SymbolicRepresentationIncompatibleMerge : Exception
 	{
 		public SymbolicRepresentationIncompatibleMerge() { }
@@ -44,6 +45,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			throw new SymbolicRepresentationIncompatibleMerge($"Cannot merge representations {rep1.Name} and {rep2.Name}");
 		}
 	}
+	#endregion
+
+	#region SymbolicContext
 
 	public class SymbolicContext
 	{
@@ -94,6 +98,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 	}
+	#endregion
 
 	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<SymbolicContext, int>, IAstTransform
 	{
@@ -168,6 +173,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 	}
 
+	#region SymbolicContextExtensions
 	public static class SymbolicContextExtensions
 	{
 #if false
@@ -229,4 +235,5 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return operatorType == BinaryOperatorType.Equality || operatorType == BinaryOperatorType.InEquality;
 		}
 	}
+	#endregion
 }

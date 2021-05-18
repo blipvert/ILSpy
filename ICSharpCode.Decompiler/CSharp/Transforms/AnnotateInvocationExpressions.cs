@@ -14,6 +14,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	/// Annotates InvocationExpression instances.
 	/// </summary>
 
+	#region InvocationMethod/InvocationParameter
 	public class InvocationParameter
 	{
 		private static int counter = 0;
@@ -63,6 +64,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return new(method);
 		}
 	}
+	#endregion
 
 	public class AnnotateInvocationExpressions : IAstTransform
 	{
