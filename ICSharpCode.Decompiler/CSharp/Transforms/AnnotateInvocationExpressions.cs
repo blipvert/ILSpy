@@ -64,18 +64,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 	}
 
-	public class ParameterAutoMap : AutoInsertDictionary<IParameter, InvocationParameter>
-	{
-		public override InvocationParameter NewValue(IParameter parameter)
-		{
-			return new(parameter);
-		}
-	}
-
 	public class AnnotateInvocationExpressions : IAstTransform
 	{
 		public readonly MethodAutoMap methodMap = new();
-		public readonly ParameterAutoMap parameterMap = new();
 
 		private void BuildMethodMap(AstNode rootNode)
 		{
@@ -89,7 +80,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						var invocationParameter = invocationMethod.parameters[index];
 						invocationParameter.Variable = parameterDeclaration.GetILVariable();
 						parameterDeclaration.AddAnnotation(invocationParameter);
-						parameterMap.Add(invocationParameter.parameter, invocationParameter);
 					}
 				}
 			}
