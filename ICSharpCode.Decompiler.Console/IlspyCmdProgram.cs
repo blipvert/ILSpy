@@ -110,6 +110,9 @@ Remarks:
 		[Option("-null|--no-output", "Send output to null stream", CommandOptionType.NoValue)]
 		public bool NullOutput { get; }
 
+		[Option("-pause|--debug-wait", "Pause to allow a debugger to attach", CommandOptionType.NoValue)]
+		public bool DebugWait { get; }
+
 		private int OnExecute(CommandLineApplication app)
 		{
 			TextWriter output = System.Console.Out;
