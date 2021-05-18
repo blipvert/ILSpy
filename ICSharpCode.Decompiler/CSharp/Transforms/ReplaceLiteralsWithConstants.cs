@@ -183,10 +183,27 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
+		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
+
+		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
+		{
+			if (variable is null)
+				return mergeContext;
+
+			if (variableContextMap.TryGetValue(variable, out var variableContext))
+			{
+				variableContext.Merge(mergeContext);
+			}
+			else
+			{
+				variableContextMap.Add(variable, variableContext = mergeContext.Ensure());
+			}
+			return variableContext;
+		}
+
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
 		private readonly SymbolicRepresentation hitMaskSymbolicRepresentation = new("HitMask");
 
-		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
 		private SymbolicRepresentation GetRepresentation(string name)
 		{
 			if (name is not null)
@@ -216,22 +233,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-
-		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
-		{
-			if (variable is null)
-				return mergeContext;
-
-			if (variableContextMap.TryGetValue(variable, out var variableContext))
-			{
-				variableContext.Merge(mergeContext);
-			}
-			else
-			{
-				variableContextMap.Add(variable, variableContext = mergeContext.Ensure());
-			}
-			return variableContext;
-		}
 
 		public override int VisitIdentifier(Identifier identifier, SymbolicContext symbolicContext)
 		{
@@ -277,6 +278,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return base.VisitChildren(node, symbolicContext);
 		}
 
+		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
+		{
+			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
+			node.SaveContext(symbolicContext);
+			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
+		}
+
 		TransformContext context;
 
 		void IAstTransform.Run(AstNode node, TransformContext context)
@@ -291,13 +299,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				this.context = null;
 			}
-		}
-
-		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
-		{
-			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			node.SaveContext(symbolicContext);
-			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 	}
 
