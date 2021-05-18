@@ -234,15 +234,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitIdentifier(Identifier identifier, SymbolicContext symbolicContext)
 		{
-			if (symbolicContext != null)
-			{
-				if (identifier.Name.Equals("layerMask", StringComparison.OrdinalIgnoreCase) ||
-						identifier.Name.Equals("_layerMask", StringComparison.OrdinalIgnoreCase))
-				{
-					symbolicContext.SetRepresentation(layerMaskSymbolicRepresentation);
-				}
-			}
-
+			SetRepresentation(ref symbolicContext, identifier.Name);
 			return base.VisitIdentifier(identifier, symbolicContext);
 		}
 
