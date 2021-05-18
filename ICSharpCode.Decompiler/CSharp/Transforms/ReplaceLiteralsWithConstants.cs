@@ -224,18 +224,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		protected override int VisitChildren(AstNode node, SymbolicContext symbolicContext)
 		{
-			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			var parameter = node.Annotation<InvocationParameter>();
-			if (parameter is not null)
-			{
-				var variable = parameter.Variable;
-				if (variable is not null)
-				{
-					symbolicContext = GetVariableContext(variable, symbolicContext);
-				}
-			}
-			node.SaveContext(symbolicContext);
-			return base.VisitChildren(node, node.HasSymbolicContext() ? symbolicContext.Ensure() : null);
+			UpdateSymbolicContextForNode(node, ref symbolicContext);
+			return base.VisitChildren(node, symbolicContext);
 		}
 
 		TransformContext context;
@@ -252,6 +242,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				this.context = null;
 			}
+		}
+
+		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
+		{
+			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
+			node.SaveContext(symbolicContext);
+			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 	}
 
