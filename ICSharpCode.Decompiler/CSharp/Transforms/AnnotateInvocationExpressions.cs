@@ -98,10 +98,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						var argMap = rr.GetArgumentToParameterMap();
 						foreach (var (index,argument) in invocationExpression.Arguments.WithIndex())
 						{
-							var parm = invocationMethod.GetParameter(argMap == null ? index : argMap[index]);
-							if (parm is not null)
+							var invocationParameter = invocationMethod.GetParameter(argMap == null ? index : argMap[index]);
+							if (invocationParameter is not null)
 							{
-								argument.AddAnnotation(parm);
+								argument.AddAnnotation(invocationParameter);
 							}
 						}
 					}
