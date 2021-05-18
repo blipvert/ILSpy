@@ -232,23 +232,23 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return variableContext;
 		}
 
-		public override int VisitIdentifier(Identifier identifier, SymbolicContext data)
+		public override int VisitIdentifier(Identifier identifier, SymbolicContext symbolicContext)
 		{
-			if (data != null)
+			if (symbolicContext != null)
 			{
 				if (identifier.Name.Equals("layerMask", StringComparison.OrdinalIgnoreCase) ||
 						identifier.Name.Equals("_layerMask", StringComparison.OrdinalIgnoreCase))
 				{
-					data.SetRepresentation(layerMaskSymbolicRepresentation);
+					symbolicContext.SetRepresentation(layerMaskSymbolicRepresentation);
 				}
 			}
 
-			return base.VisitIdentifier(identifier, data);
+			return base.VisitIdentifier(identifier, symbolicContext);
 		}
 
-		public override int VisitInvocationExpression(InvocationExpression invocationExpression, SymbolicContext data)
+		public override int VisitInvocationExpression(InvocationExpression invocationExpression, SymbolicContext symbolicContext)
 		{
-			return base.VisitInvocationExpression(invocationExpression, data);
+			return base.VisitInvocationExpression(invocationExpression, symbolicContext);
 		}
 
 		protected override int VisitChildren(AstNode node, SymbolicContext symbolicContext)
