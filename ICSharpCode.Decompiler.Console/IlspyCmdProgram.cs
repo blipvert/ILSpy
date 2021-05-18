@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 using McMaster.Extensions.CommandLineUtils;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
@@ -241,6 +242,13 @@ Remarks:
 		{
 			int charPos = 0;
 			int count = 0;
+			bool debugWait;
+
+			public Progress(bool debugWait = false)
+			{
+				this.debugWait = debugWait;
+			}
+
 			public void Report(DecompilationProgress value)
 			{
 				System.Console.CursorVisible = false;
@@ -259,7 +267,16 @@ Remarks:
 				charPos = outputLine.Length;
 				System.Console.CursorVisible = true;
 				if (count == value.TotalNumberOfFiles)
+				{
 					System.Console.WriteLine();
+					if (debugWait)
+					{
+						System.Console.Write('\a');
+						System.Console.WriteLine($"Attach to process {Process.GetCurrentProcess().Id}");
+						Thread.Sleep(20 * 1000);
+						System.Console.WriteLine("Resuming...");
+					}
+				}
 			}
 		}
 
@@ -289,7 +306,7 @@ Remarks:
 				resolver.AddSearchDirectory(PrependReferencePaths[--i], true);
 			}
 			var decompiler = new WholeProjectDecompiler(GetSettings(), resolver, resolver, TryLoadPDB(module));
-			decompiler.ProgressIndicator = new Progress();
+			decompiler.ProgressIndicator = new Progress(DebugWait);
 			decompiler.DecompileNamedProject(module, outputDirectory, projectRoot, projectName);
 			return 0;
 		}
@@ -298,7 +315,7 @@ Remarks:
 		{
 			CSharpDecompiler decompiler = GetDecompiler(assemblyFileName);
 			if (ShowProgress)
-				decompiler.ProgressIndicator = new Progress();
+				decompiler.ProgressIndicator = new Progress(DebugWait);
 
 			if (typeName == null) {
 				decompiler.DecompileWholeModuleToOutput(output);
