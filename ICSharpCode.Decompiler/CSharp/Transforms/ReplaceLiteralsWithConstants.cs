@@ -142,6 +142,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			return (index >= 0 && index < parameters.Length) ? parameters[index] : null;
 		}
+
+		public InvocationParameter GetParameter(int index, IReadOnlyList<int> mapper)
+		{
+			if (mapper is not null)
+				index = mapper[index];
+			return GetParameter(index);
+		}
 	}
 
 	public class MethodAutoMap : AutoInsertDictionary<IMethod, InvocationMethod>
