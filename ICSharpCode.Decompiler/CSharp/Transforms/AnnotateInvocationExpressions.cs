@@ -113,7 +113,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							{
 								argument.AddAnnotation(parm);
 							}
-							++argIdx;
 						}
 					}
 				}
