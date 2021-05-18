@@ -184,6 +184,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#endregion
 
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
+		private readonly SymbolicRepresentation hitMaskSymbolicRepresentation = new("HitMask");
 
 		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
 		private SymbolicRepresentation GetRepresentation(string name)
