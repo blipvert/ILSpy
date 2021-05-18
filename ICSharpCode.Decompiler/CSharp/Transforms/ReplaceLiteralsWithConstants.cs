@@ -186,6 +186,35 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
 
 		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
+		private SymbolicRepresentation GetRepresentation(string name)
+		{
+			if (name is not null)
+			{
+				if (name.Equals("layerMask", StringComparison.OrdinalIgnoreCase) || name.Equals("_layerMask", StringComparison.OrdinalIgnoreCase))
+				{
+					return layerMaskSymbolicRepresentation;
+				}
+				if (name.Equals("hitMask", StringComparison.OrdinalIgnoreCase) || name.Equals("_hitMask", StringComparison.OrdinalIgnoreCase))
+				{
+					return hitMaskSymbolicRepresentation;
+				}
+			}
+			return null;
+		}
+
+		private void SetRepresentation(ref SymbolicContext symbolicContext, string name)
+		{
+			var symbolicRepresentation = GetRepresentation(name);
+
+			if (symbolicRepresentation is not null)
+			{
+				if (symbolicContext is null)
+					symbolicContext = new SymbolicContext(symbolicRepresentation);
+				else
+					symbolicContext.SetRepresentation(symbolicRepresentation);
+			}
+		}
+
 
 		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
 		{
