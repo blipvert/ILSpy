@@ -48,7 +48,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	#endregion
 
 	#region SymbolicContext
-
 	public class SymbolicContext
 	{
 		public class Inference
@@ -96,7 +95,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				inference.Representation = representation;
 			}
 		}
-
 	}
 	#endregion
 
@@ -158,7 +156,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 	}
 	#endregion
-
 
 	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<SymbolicContext, int>, IAstTransform
 	{
@@ -232,7 +229,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					symbolicContext.SetRepresentation(symbolicRepresentation);
 			}
 		}
-
 
 		public override int VisitIdentifier(Identifier identifier, SymbolicContext symbolicContext)
 		{
