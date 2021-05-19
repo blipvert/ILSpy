@@ -56,7 +56,9 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				return;
 
 			WriteStartElement(node.GetType().Name);
-
+#if false
+			WriteAttribute("Role", node.Role);
+#endif
 			var symbol = node.GetSymbol();
 			if (symbol != null)
 			{
