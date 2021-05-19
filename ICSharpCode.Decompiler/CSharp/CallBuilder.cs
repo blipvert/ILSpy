@@ -738,9 +738,10 @@ namespace ICSharpCode.Decompiler.CSharp
 					parameter = method.Parameters[i - firstParamIndex];
 				}
 				var arg = expressionBuilder.Translate(callArguments[i], parameter.Type);
-				if (arg.Expression is PrimitiveExpression pe)
+				if (parameter.Name == "layerMask")
 				{
-					pe.ValueHint = GetPrimitiveValueHint(pe, method, parameter);
+					if (arg.Expression is PrimitiveExpression pe)
+						pe.Format = LiteralFormat.LayerMask;
 				}
 				if (IsPrimitiveValueThatShouldBeNamedArgument(arg, method, parameter))
 				{
@@ -802,19 +803,6 @@ namespace ICSharpCode.Decompiler.CSharp
 			list.UseImplicitlyTypedOut = true;
 			list.AddNamesToPrimitiveValues = expressionBuilder.settings.NamedArguments && expressionBuilder.settings.NonTrailingNamedArguments;
 			return list;
-		}
-
-		private string GetPrimitiveValueHint(PrimitiveExpression pe, IMethod method, IParameter p)
-		{
-			if (p.Name.Equals("layerMask", StringComparison.OrdinalIgnoreCase) || p.Name.Equals("_layerMask", StringComparison.OrdinalIgnoreCase))
-			{
-				return "LayerMask";
-			}
-			if (p.Name.Equals("hitMask", StringComparison.OrdinalIgnoreCase) || p.Name.Equals("_hitMask", StringComparison.OrdinalIgnoreCase))
-			{
-				return "HitMask";
-			}
-			return null;
 		}
 
 		private bool IsPrimitiveValueThatShouldBeNamedArgument(TranslatedExpression arg, IMethod method, IParameter p)

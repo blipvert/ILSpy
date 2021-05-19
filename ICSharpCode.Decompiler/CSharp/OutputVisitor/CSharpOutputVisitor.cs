@@ -1126,19 +1126,6 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		public virtual void VisitPrimitiveExpression(PrimitiveExpression primitiveExpression)
 		{
 			StartNode(primitiveExpression);
-			if (!string.IsNullOrEmpty(primitiveExpression.ValueHint))
-			{
-				writer.WriteComment(CommentType.MultiLine, primitiveExpression.ValueHint);
-			}
-			else
-			{
-				var valueHint = primitiveExpression.Annotation<SymbolicContext>()?.Representation?.Name;
-				if (!string.IsNullOrEmpty(valueHint))
-				{
-					writer.WriteComment(CommentType.MultiLine, valueHint);
-				}
-			}
-
 			writer.WritePrimitiveValue(primitiveExpression.Value, primitiveExpression.Format);
 			isAfterSpace = false;
 			EndNode(primitiveExpression);
