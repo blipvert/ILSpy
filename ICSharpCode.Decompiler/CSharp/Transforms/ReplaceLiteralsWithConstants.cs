@@ -1,3 +1,4 @@
+#undef DEBUG_ANNOTATE
 
 using System;
 using System.Linq;
@@ -174,11 +175,40 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					{
 						var invocationParameter = invocationMethod.parameters[index];
 						invocationParameter.Variable = parameterDeclaration.GetILVariable();
+#if DEBUG_ANNOTATE
+						parameterDeclaration.AddAnnotation(invocationParameter);
+#endif
 					}
 				}
 			}
 		}
-		#endregion
+
+#if DEBUG_ANNOTATE
+		private void AnnotateInvocations(AstNode rootNode)
+		{
+			foreach (var invocationExpression in rootNode.DescendantsAndSelf.OfType<InvocationExpression>())
+			{
+				if (invocationExpression.GetSymbol() is IMethod method)
+				{
+					var invocationMethod = methodMap[method];
+					var rr = invocationExpression.Annotation<CSharpInvocationResolveResult>();
+					if (rr != null)
+					{
+						var argMap = rr.GetArgumentToParameterMap();
+						foreach (var (index, argument) in invocationExpression.Arguments.WithIndex())
+						{
+							var invocationParameter = invocationMethod.GetParameter(argMap == null ? index : argMap[index]);
+							if (invocationParameter is not null)
+							{
+								argument.AddAnnotation(invocationParameter);
+							}
+						}
+					}
+				}
+			}
+		}
+#endif
+	#endregion
 
 		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
 
@@ -289,6 +319,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			try
 			{
 				BuildMethodMap(node);
+#if DEBUG_ANNOTATE
+				AnnotateInvocations(node);
+#endif
 				VisitChildren(node, null);
 			}
 			finally
