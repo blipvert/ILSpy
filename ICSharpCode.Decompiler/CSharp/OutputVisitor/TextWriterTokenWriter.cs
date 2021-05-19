@@ -397,8 +397,6 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				}
 				else
 				{
-					if (format == LiteralFormat.LayerMask)
-						b.Append("[LayerMask] ");
 					b.Append(((IFormattable)value).ToString(null, NumberFormatInfo.InvariantInfo));
 				}
 				if (value is uint || value is ulong)
