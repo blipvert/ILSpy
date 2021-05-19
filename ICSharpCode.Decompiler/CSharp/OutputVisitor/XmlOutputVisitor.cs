@@ -56,16 +56,11 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			return settings;
 		}
 
-		public override void VisitUsingDeclaration(UsingDeclaration usingDeclaration)
-		{
-		}
-
-		public override void VisitAttributeSection(AttributeSection attributeSection)
-		{
-		}
-
 		protected void VisitNode(AstNode node)
 		{
+			if (node is UsingDeclaration || node is AttributeSection)
+				return;
+
 			WriteStartElement(node.GetType().Name);
 
 			var symbol = node.GetSymbol();
