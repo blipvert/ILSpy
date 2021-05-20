@@ -422,6 +422,7 @@
     <Compile Include="TypeSystem\TupleType.cs" />
     <Compile Include="TypeSystem\TypeProvider.cs" />
     <Compile Include="Util\AutoInsertDictionary.cs" />
+    <Compile Include="Util\BitwiseExtensions.cs" />
     <Compile Include="Util\FileUtility.cs" />
     <Compile Include="Util\GraphVizGraph.cs" />
     <Compile Include="Util\KeyComparer.cs" />
