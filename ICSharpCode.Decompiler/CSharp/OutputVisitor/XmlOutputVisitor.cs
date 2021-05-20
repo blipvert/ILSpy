@@ -6,6 +6,7 @@ using System.Xml;
 using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.CSharp.Transforms;
 using ICSharpCode.Decompiler.CSharp.Resolver;
+using ICSharpCode.Decompiler.Semantics;
 
 using Attribute = ICSharpCode.Decompiler.CSharp.Syntax.Attribute;
 
@@ -77,17 +78,11 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 				if (parameter.Variable is not null)
 					WriteAttribute("ParameterVariable", parameter.Variable.Name);
 			}
-#if false
 			var resolveResult = node.Annotation<ResolveResult>();
 			if (resolveResult != null)
 			{
 				WriteAttribute("ResolveResult", resolveResult.GetType().Name);
-				if (resolveResult is ILVariableResolveResult ilvrr)
-				{
-					WriteAttribute("Variable", ilvrr.Variable.Name);
-				}
 			}
-#endif
 			WriteContextAttributes(node.Annotation<SymbolicContext>());
 			node.AcceptVisitor(this);
 			if (node is Expression && !(node.Parent is Expression))
