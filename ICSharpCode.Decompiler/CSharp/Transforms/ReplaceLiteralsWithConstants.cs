@@ -639,15 +639,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			if (symbolicContext != null)
 			{
-				var oldAnnotation = node.Annotation<SymbolicContext>();
-				if (oldAnnotation == null)
-				{
-					node.AddAnnotation(symbolicContext);
-				}
-				else
-				{
-					oldAnnotation.Merge(symbolicContext);
-				}
+				if (node.Annotation<SymbolicContext>() is not null)
+					throw new ArgumentException($"Node {node} has already been assigned a symbolic context");
+
+				node.AddAnnotation(symbolicContext);
 			}
 		}
 
