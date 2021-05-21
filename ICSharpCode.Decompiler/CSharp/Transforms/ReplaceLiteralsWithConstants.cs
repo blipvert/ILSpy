@@ -535,6 +535,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return base.VisitIdentifier(identifier, symbolicContext);
 		}
 
+		public override int VisitPrimitiveExpression(PrimitiveExpression primitiveExpression, SymbolicContext symbolicContext)
+		{
+			primitiveExpression.SaveContext(symbolicContext);
+			return base.VisitPrimitiveExpression(primitiveExpression, symbolicContext);
+		}
+
 		public override int VisitInvocationExpression(InvocationExpression invocationExpression, SymbolicContext symbolicContext)
 		{
 			UpdateSymbolicContextForNode(invocationExpression, ref symbolicContext);
@@ -576,7 +582,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
 			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			node.SaveContext(symbolicContext);
+#if DEBUG_ANNOTATE
+			if (node is not PrimitiveExpression)
+				node.SaveContext(symbolicContext);
+#endif
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 
