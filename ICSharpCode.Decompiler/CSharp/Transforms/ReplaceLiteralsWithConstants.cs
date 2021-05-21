@@ -1,4 +1,5 @@
-#undef DEBUG_ANNOTATE
+//#define DEBUG_ANNOTATE
+//#define BITVALUE_STUFF
 
 using System;
 using System.Linq;
@@ -160,6 +161,274 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<SymbolicContext, int>, IAstTransform
 	{
+		#region BitValue/BitValueExpression/Bitmask/Bitfield
+		abstract class BitValue
+		{
+			public abstract bool Simple { get; }
+			public virtual bool Inverted => false;
+			public virtual BitValue UninvertedValue => this;
+			public readonly int Weight;
+
+			public readonly int Value;
+			public int BitCount => Value.BitCount();
+
+			public BitValue(int value, int weight = 1)
+			{
+				Value = value;
+				Weight = weight;
+			}
+
+			protected abstract Expression ExpressValue(TransformContext context);
+
+			public virtual Expression Express(TransformContext context)
+			{
+				return ExpressValue(context).WithCIRR(context, Value);
+			}
+			public abstract BitValue Simplify();
+
+			public virtual BitValue Invert()
+			{
+				return new InvertedBitValueExpression(this);
+			}
+		}
+
+		abstract class SimpleBitValue : BitValue
+		{
+			public override bool Simple => true;
+			protected readonly BitValue bitValue;
+
+			public SimpleBitValue(BitValue bv, int? value = null) : base(value ?? bv.Value, bv.Weight)
+			{
+				bitValue = bv;
+			}
+
+			public override BitValue Simplify()
+			{
+				return this;
+			}
+		}
+
+		class CombinedBitValue : BitValue
+		{
+			public override bool Simple => false;
+			protected readonly BitValue left, right;
+
+			public CombinedBitValue(BitValue left, BitValue right) : base(left.Value | right.Value, left.Weight + right.Weight)
+			{
+				this.left = left;
+				this.right = right;
+			}
+			protected override Expression ExpressValue(TransformContext context)
+			{
+				var lhs = left.Express(context);
+				var rhs = right.Express(context);
+				return new BinaryOperatorExpression(lhs, BinaryOperatorType.BitwiseOr, rhs);
+			}
+
+			public override BitValue Simplify()
+			{
+				return new BitValueGroup(this);
+			}
+		}
+
+		class BitValueGroup : SimpleBitValue
+		{
+			public BitValueGroup(BitValue bv) : base(bv)
+			{
+			}
+
+			protected override Expression ExpressValue(TransformContext context)
+			{
+				return new ParenthesizedExpression(bitValue.Express(context));
+			}
+		}
+
+		class InvertedBitValueExpression : SimpleBitValue
+		{
+			public override bool Inverted => true;
+			public override BitValue UninvertedValue => bitValue;
+
+			public InvertedBitValueExpression(BitValue bv) : base(bv.UninvertedValue, ~bv.UninvertedValue.Value)
+			{
+			}
+
+			protected override Expression ExpressValue(TransformContext context)
+			{
+				return new UnaryOperatorExpression(UnaryOperatorType.BitNot, bitValue.Express(context));
+			}
+
+			public override BitValue Invert()
+			{
+				return bitValue;
+			}
+		}
+
+		class Bitmask : SimpleBitValue, IComparable<Bitmask>
+		{
+			public readonly IField Field;
+			public BitValue Expansion => bitValue;
+
+			public Bitmask(IField field, BitValue bitValue) : base(bitValue.Simplify())
+			{
+				Field = field;
+			}
+
+			public int CompareTo(Bitmask other)
+			{
+				int d = other.BitCount.CompareTo(BitCount);
+				if (d != 0)
+					return d;
+				return other.Value.CompareTo(Value);
+			}
+
+			protected override Expression ExpressValue(TransformContext context)
+			{
+				throw new NotImplementedException();
+			}
+
+			public override Expression Express(TransformContext context)
+			{
+				return Field.CreateMemberReference(context);
+			}
+		}
+
+		class BitPosition : BitValue
+		{
+			public override bool Simple => true;
+			private IField field = null;
+			public readonly int position;
+			public BitPosition(int position) : base(1 << position)
+			{
+				this.position = position;
+			}
+			public void SetField(IField field)
+			{
+				if (position != field.IntegerConstantValue())
+					throw new ArgumentException($"{field} value mismatch with bit position {position}");
+				this.field = field;
+			}
+
+			private Expression GetPositionExpression(TransformContext context)
+			{
+				return (field is null) ? position.CreatePrimitive(context) : field.CreateMemberReference(context);
+			}
+
+			protected override Expression ExpressValue(TransformContext context)
+			{
+				var lhs = 1.CreatePrimitive(context);
+				var op = BinaryOperatorType.ShiftLeft;
+				var rhs = GetPositionExpression(context);
+				var expr = new BinaryOperatorExpression(lhs, op, rhs).WithCIRR(context, Value);
+				return new ParenthesizedExpression(expr);
+			}
+
+			public override BitValue Simplify()
+			{
+				return this;
+			}
+		}
+
+		class Bitfield
+		{
+			private readonly BitPosition[] position = Enumerable.Range(0, 31).Select(x => new BitPosition(x)).ToArray();
+
+			public BitPosition[] Position => position;
+
+			public readonly SortedSet<Bitmask> masks = new();
+
+			public Bitfield()
+			{
+			}
+
+			public void SetPosition(IField field)
+			{
+				position[field.IntegerConstantValue()].SetField(field);
+			}
+
+			public void AddMask(IField field)
+			{
+				var value = field.IntegerConstantValue();
+				var bv1 = Decompose(value);
+				var bv2 = Decompose(~value);
+				masks.Add(new Bitmask(field,
+					bv2.Weight < bv1.Weight ? bv2.Invert() : bv1));
+			}
+
+			public BitValue Decompose(int value)
+			{
+				IEnumerable<BitValue> Iter(int value)
+				{
+					foreach (var m in masks)
+					{
+						if (value.AllSet(m.Value))
+						{
+							yield return m;
+							value = value.Clear(m.Value);
+						}
+					}
+					foreach (var b in value.Bits())
+					{
+						yield return position[b];
+					}
+				}
+
+				BitValue bitValue = null;
+
+				foreach (var bv in Iter(value))
+				{
+					bitValue = (bitValue is null) ? bv : new CombinedBitValue(bv, bitValue);
+				}
+				return bitValue;
+			}
+		}
+		#endregion
+
+		#region Collecting Constant Declarations
+		private Bitfield layerMaskBitfield = new();
+		private Bitfield hitMaskBitfield = new();
+
+		private void CollectConstantDeclarations(AstNode rootNode)
+		{
+#if BITVALUE_STUFF
+			foreach (var typeDeclaration in rootNode.Children.OfType<TypeDeclaration>())
+			{
+				if (typeDeclaration.Role == SyntaxTree.MemberRole)
+				{
+					var typeSymbol = typeDeclaration.GetSymbol();
+					if (typeSymbol.Name == "Constants")
+					{
+						foreach (var fieldDeclaration in typeDeclaration.Children.OfType<FieldDeclaration>())
+						{
+							if (fieldDeclaration.Role == Roles.TypeMemberRole)
+							{
+								var fieldSymbol = fieldDeclaration.GetSymbol() as IField;
+								if (fieldSymbol.IsIntegerConstant() && fieldSymbol.Name.StartsWith("cLayer"))
+								{
+									if (fieldSymbol.Name.StartsWith("cLayerMask"))
+										layerMaskBitfield.AddMask(fieldSymbol);
+									else
+										layerMaskBitfield.SetPosition(fieldSymbol);
+								}
+							}
+						}
+					}
+					if (typeSymbol.Name == "Voxel")
+					{
+						foreach (var fieldDeclaration in typeDeclaration.Children.OfType<FieldDeclaration>())
+						{
+							if (fieldDeclaration.Role == Roles.TypeMemberRole)
+							{
+								var fieldSymbol = fieldDeclaration.GetSymbol() as IField;
+								if (fieldSymbol.IsIntegerConstant() && fieldSymbol.Name.StartsWith("HM_"))
+									hitMaskBitfield.AddMask(fieldSymbol);
+							}
+						}
+					}
+				}
+			}
+#endif
+		}
+		#endregion
 
 		#region Identifying invocation variables
 		public readonly MethodAutoMap methodMap = new();
@@ -208,7 +477,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 #endif
-	#endregion
+		#endregion
 
 		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
 
@@ -311,6 +580,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 
+		private void ReplacePrimitiveExpressions(AstNode node)
+		{
+
+		}
+
+
 		TransformContext context;
 
 		void IAstTransform.Run(AstNode node, TransformContext context)
@@ -318,11 +593,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			this.context = context;
 			try
 			{
+				CollectConstantDeclarations(node);
 				BuildMethodMap(node);
 #if DEBUG_ANNOTATE
 				AnnotateInvocations(node);
 #endif
 				VisitChildren(node, null);
+				ReplacePrimitiveExpressions(node);
 			}
 			finally
 			{
@@ -391,6 +668,49 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public static bool IsEquality(this BinaryOperatorType operatorType)
 		{
 			return operatorType == BinaryOperatorType.Equality || operatorType == BinaryOperatorType.InEquality;
+		}
+
+		public static bool IsIntegerConstant(this IVariable variable)
+		{
+			return variable is not null && variable.IsConst && variable.Type.IsKnownType(KnownTypeCode.Int32);
+		}
+
+		public static int IntegerConstantValue(this IVariable variable)
+		{
+			if (!variable.IsIntegerConstant())
+				throw new ArgumentException($"{variable} is not an Int32 constant");
+			return (int)variable.GetConstantValue(true);
+		}
+
+		public static Expression CreateTypeReference(this IType type, TransformContext context)
+		{
+			return new TypeReferenceExpression(context.TypeSystemAstBuilder.ConvertType(type))
+				.WithoutILInstruction()
+				.WithRR(new TypeResolveResult(type));
+		}
+
+		public static Expression CreateMemberReference(this IMember member, TransformContext context)
+		{
+			var target = member.DeclaringType.CreateTypeReference(context);
+			return new MemberReferenceExpression(target, member.Name)
+				.WithRR(new MemberResolveResult(target.GetResolveResult(), member));
+		}
+
+		public static Expression CreateIdentifierReference(this IMember member, TransformContext context)
+		{
+			return new IdentifierExpression(member.Name)
+				.WithRR(new MemberResolveResult(new TypeResolveResult(member.DeclaringType), member));
+		}
+
+		public static Expression CreatePrimitive(this int value, TransformContext context)
+		{
+			return new PrimitiveExpression(value).WithCIRR(context, value);
+		}
+
+		public static Expression WithCIRR(this Expression expression, TransformContext context, int value)
+		{
+			return expression.WithoutILInstruction()
+				.WithRR(new ConstantResolveResult(context.TypeSystem.FindType(KnownTypeCode.Int32), value));
 		}
 	}
 	#endregion
