@@ -165,18 +165,19 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#region BitValue/BitValueExpression/Bitmask/Bitfield
 		abstract class BitValue
 		{
-			public virtual bool Complex => false;
 			public virtual bool Inverted => false;
 			public virtual BitValue UninvertedValue => this;
-			public readonly int Weight;
+			public readonly int Complexity;
 
 			public readonly int Value;
 			public int BitCount => Value.BitCount();
 
-			public BitValue(int value, int weight = 1)
+			public static readonly BitValue Null = new NullBitValue();
+
+			public BitValue(int value, int complexity = 1)
 			{
 				Value = value;
-				Weight = weight;
+				Complexity = complexity;
 			}
 
 			protected abstract Expression ExpressValue(TransformContext context);
@@ -185,11 +186,39 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				return ExpressValue(context).WithCIRR(context, Value);
 			}
-			public abstract BitValue Simplify();
+
+			public virtual BitValue Group()
+			{
+				return this;
+			}
 
 			public virtual BitValue Invert()
 			{
 				return new InvertedBitValueExpression(this);
+			}
+
+			public virtual BitValue Combine(BitValue other)
+			{
+				return new CombinedBitValue(this, other);
+			}
+		}
+
+		class NumericBitValue : BitValue
+		{
+			public NumericBitValue(int value) : base(value) { }
+
+			protected override Expression ExpressValue(TransformContext context)
+			{
+				return Value.CreatePrimitive(context);
+			}
+		}
+
+		class NullBitValue : NumericBitValue
+		{
+			public NullBitValue() : base(0) { }
+			public override BitValue Combine(BitValue other)
+			{
+				return other;
 			}
 		}
 
@@ -197,23 +226,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			protected readonly BitValue bitValue;
 
-			public SimpleBitValue(BitValue bv, int? value = null) : base(value ?? bv.Value, bv.Weight)
+			public SimpleBitValue(BitValue bv, int? value = null, int? complexity = null)
+				: base(value ?? bv.Value, complexity ?? bv.Complexity)
 			{
 				bitValue = bv;
-			}
-
-			public override BitValue Simplify()
-			{
-				return this;
 			}
 		}
 
 		class CombinedBitValue : BitValue
 		{
-			public override bool Complex => true;
 			protected readonly BitValue left, right;
 
-			public CombinedBitValue(BitValue left, BitValue right) : base(left.Value | right.Value, left.Weight + right.Weight)
+			public CombinedBitValue(BitValue left, BitValue right) : base(left.Value | right.Value, left.Complexity + right.Complexity)
 			{
 				this.left = left;
 				this.right = right;
@@ -225,7 +249,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return new BinaryOperatorExpression(lhs, BinaryOperatorType.BitwiseOr, rhs);
 			}
 
-			public override BitValue Simplify()
+			public override BitValue Group()
 			{
 				return new BitValueGroup(this);
 			}
@@ -248,7 +272,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public override bool Inverted => true;
 			public override BitValue UninvertedValue => bitValue;
 
-			public InvertedBitValueExpression(BitValue bv) : base(bv.UninvertedValue, ~bv.UninvertedValue.Value)
+			public InvertedBitValueExpression(BitValue bv) : base(bv, ~bv.Value, bv.Complexity + 1)
 			{
 			}
 
@@ -268,7 +292,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public readonly IField Field;
 			public BitValue Expansion => bitValue;
 
-			public Bitmask(IField field, BitValue bitValue) : base(bitValue.Simplify())
+			public Bitmask(IField field, BitValue bitValue) : base(bitValue.Group(), complexity: 1)
 			{
 				Field = field;
 			}
@@ -321,7 +345,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return new ParenthesizedExpression(expr);
 			}
 
-			public override BitValue Simplify()
+			public override BitValue Group()
 			{
 				return this;
 			}
@@ -334,6 +358,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public BitPosition[] Position => position;
 
 			public readonly SortedSet<Bitmask> masks = new();
+			public readonly Dictionary<int, Bitmask> values = new();
 
 			public Bitfield()
 			{
@@ -356,62 +381,49 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public void AddMask_Old(IField field)
+			private void AddMask(Bitmask bitmask, int value)
 			{
-				var value = field.IntegerConstantValue();
 				if (value != 0)
-				{
-					var bv1 = Decompose(value);
-					var bv2 = Decompose(~value);
-					masks.Add(new Bitmask(field,
-						bv2.Weight < bv1.Weight ? bv2.Invert() : bv1));
-				}
+					masks.Add(bitmask);
+				values.Add(value, bitmask);
 			}
 
 			public void AddMask(IField field)
 			{
-				var value = field.IntegerConstantValue();
-				if (value != 0)
-				{
-					var bv = Translate(value);
-
-					masks.Add(new Bitmask(field, bv));
-				}
+				int value = field.IntegerConstantValue();
+				AddMask(new Bitmask(field, Translate(value)), value);
 			}
 
 			public BitValue Translate(int value)
 			{
-				if (value < 0)
-					return Decompose(~value).Invert();
-				else
-					return Decompose(value);
+				if (values.TryGetValue(value, out var bitmask))
+					return bitmask;
+				var bitValue = Decompose(value);
+				var bitValueInv = Decompose(~value).Invert();
+				return bitValueInv.Complexity < bitValue.Complexity ? bitValueInv : bitValue;
+			}
+
+			public IEnumerable<BitValue> DecomposeIter(int value)
+			{
+				foreach (var m in masks)
+				{
+					if (value == 0)
+						yield break;
+					if (value.AllSet(m.Value))
+					{
+						yield return m;
+						value = value.Clear(m.Value);
+					}
+				}
+				foreach (var b in value.Bits())
+				{
+					yield return position[b];
+				}
 			}
 
 			public BitValue Decompose(int value)
 			{
-				IEnumerable<BitValue> Iter(int value)
-				{
-					foreach (var m in masks)
-					{
-						if (value.AllSet(m.Value))
-						{
-							yield return m;
-							value = value.Clear(m.Value);
-						}
-					}
-					foreach (var b in value.Bits())
-					{
-						yield return position[b];
-					}
-				}
-
-				BitValue bitValue = null;
-
-				foreach (var bv in Iter(value))
-				{
-					bitValue = (bitValue is null) ? bv : new CombinedBitValue(bitValue, bv);
-				}
-				return bitValue;
+				return DecomposeIter(value).Aggregate(BitValue.Null, (total, bv) => total.Combine(bv));
 			}
 		}
 		#endregion
