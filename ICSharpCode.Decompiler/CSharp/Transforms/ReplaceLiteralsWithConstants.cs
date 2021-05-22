@@ -623,13 +623,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, Bitfield bitfield)
 		{
-			if (primitiveExpression.Value is int intValue)
+			if ((primitiveExpression.Value is int intValue) && intValue != 0)
 			{
-				var bitValue = bitfield.Decompose(intValue);
+				var bitValue = bitfield.Translate(intValue);
 				primitiveExpression.ReplaceWith(bitValue.Express(context).CopyAnnotationsFrom(primitiveExpression));
 			}
 		}
 
+		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, Bitfield bitfield)
 		private void ReplacePrimitiveExpressions(AstNode node)
 		{
 			foreach (var primitiveExpression in node.DescendantsAndSelf.OfType<PrimitiveExpression>())
