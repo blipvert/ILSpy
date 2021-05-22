@@ -357,7 +357,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public void AddMask(IField field)
+			public void AddMask_Old(IField field)
 			{
 				var value = field.IntegerConstantValue();
 				if (value != 0)
@@ -367,6 +367,25 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					masks.Add(new Bitmask(field,
 						bv2.Weight < bv1.Weight ? bv2.Invert() : bv1));
 				}
+			}
+
+			public void AddMask(IField field)
+			{
+				var value = field.IntegerConstantValue();
+				if (value != 0)
+				{
+					var bv = Translate(value);
+
+					masks.Add(new Bitmask(field, bv));
+				}
+			}
+
+			public BitValue Translate(int value)
+			{
+				if (value < 0)
+					return Decompose(~value).Invert();
+				else
+					return Decompose(value);
 			}
 
 			public BitValue Decompose(int value)
