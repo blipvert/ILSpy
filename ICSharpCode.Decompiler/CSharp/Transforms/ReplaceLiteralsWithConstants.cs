@@ -209,7 +209,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			protected override Expression ExpressValue(TransformContext context)
 			{
-				return Value.CreatePrimitive(context);
+				return new PrimitiveExpression(Value);
 			}
 		}
 
