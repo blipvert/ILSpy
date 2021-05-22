@@ -165,7 +165,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#region BitValue/BitValueExpression/Bitmask/Bitfield
 		abstract class BitValue
 		{
-			public abstract bool Simple { get; }
+			public virtual bool Complex => false;
 			public virtual bool Inverted => false;
 			public virtual BitValue UninvertedValue => this;
 			public readonly int Weight;
@@ -195,7 +195,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		abstract class SimpleBitValue : BitValue
 		{
-			public override bool Simple => true;
 			protected readonly BitValue bitValue;
 
 			public SimpleBitValue(BitValue bv, int? value = null) : base(value ?? bv.Value, bv.Weight)
@@ -211,7 +210,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		class CombinedBitValue : BitValue
 		{
-			public override bool Simple => false;
+			public override bool Complex => true;
 			protected readonly BitValue left, right;
 
 			public CombinedBitValue(BitValue left, BitValue right) : base(left.Value | right.Value, left.Weight + right.Weight)
@@ -295,7 +294,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		class BitPosition : BitValue
 		{
-			public override bool Simple => true;
 			private IField field = null;
 			public readonly int position;
 			public BitPosition(int position) : base(1 << position)
