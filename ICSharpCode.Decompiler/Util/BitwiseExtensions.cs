@@ -8,11 +8,23 @@ namespace ICSharpCode.Decompiler.Util
 	/// </summary>
 	static class BitwiseExtension
 	{
-		public static int BitCount(this int integer)
+		public static int BitCount1(this int integer)
 		{
 			int bc = integer - ((integer >> 1) & 0x55555555);
 			bc = (bc & 0x33333333) + ((bc >> 2) & 0x33333333);
 			return (((bc + (bc >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+		}
+
+		public static int BitCount(this int integer)
+		{
+			int bitCount = 0;
+
+			for (int i = 0; i < 31; ++i)
+				if ((integer & (1 << i)) != 0)
+					++bitCount;
+			if (integer < 0)
+				++bitCount;
+			return bitCount;
 		}
 
 		public static bool IsBitSet(this int integer, int position)
