@@ -342,7 +342,19 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public void SetPosition(IField field)
 			{
-				position[field.IntegerConstantValue()].SetField(field);
+				int bitNumber = field.IntegerConstantValue();
+				if (bitNumber < 0 || bitNumber > 31)
+				{
+					throw new ArgumentException($"field {field} specifies bit {bitNumber} outside of 32-bit range");
+				}
+				try
+				{
+					position[field.IntegerConstantValue()].SetField(field);
+				}
+				catch (Exception e)
+				{
+					throw e;
+				}
 			}
 
 			public void AddMask(IField field)
