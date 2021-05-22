@@ -360,10 +360,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public void AddMask(IField field)
 			{
 				var value = field.IntegerConstantValue();
-				var bv1 = Decompose(value);
-				var bv2 = Decompose(~value);
-				masks.Add(new Bitmask(field,
-					bv2.Weight < bv1.Weight ? bv2.Invert() : bv1));
+				if (value != 0)
+				{
+					var bv1 = Decompose(value);
+					var bv2 = Decompose(~value);
+					masks.Add(new Bitmask(field,
+						bv2.Weight < bv1.Weight ? bv2.Invert() : bv1));
+				}
 			}
 
 			public BitValue Decompose(int value)
