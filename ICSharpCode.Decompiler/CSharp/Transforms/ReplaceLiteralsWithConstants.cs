@@ -388,7 +388,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 				foreach (var bv in Iter(value))
 				{
-					bitValue = (bitValue is null) ? bv : new CombinedBitValue(bv, bitValue);
+					bitValue = (bitValue is null) ? bv : new CombinedBitValue(bitValue, bv);
 				}
 				return bitValue;
 			}
