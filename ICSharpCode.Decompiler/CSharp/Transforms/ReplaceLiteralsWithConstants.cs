@@ -1,5 +1,5 @@
 //#define DEBUG_ANNOTATE
-#define DEBUG_VERBOSE
+//#define DEBUG_VERBOSE
 #define BITVALUE_STUFF
 
 using System;
