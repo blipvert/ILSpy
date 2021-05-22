@@ -631,6 +631,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, Bitfield bitfield)
+		{
+			foreach (var variable in fieldDeclaration.Variables)
+			{
+				if (variable.Initializer is PrimitiveExpression primitiveExpression)
+					ReplacePrimitiveWithSymbolic(primitiveExpression, bitfield);
+			}
+		}
+
 		private void ReplacePrimitiveExpressions(AstNode node)
 		{
 			foreach (var primitiveExpression in node.DescendantsAndSelf.OfType<PrimitiveExpression>())
