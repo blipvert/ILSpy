@@ -438,7 +438,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 								if (fieldSymbol.IsIntegerConstant() && fieldSymbol.Name.StartsWith("cLayer"))
 								{
 									if (fieldSymbol.Name.StartsWith("cLayerMask"))
+									{
+										ModifyFieldDeclaration(fieldDeclaration, layerMaskBitfield);
 										layerMaskBitfield.AddMask(fieldSymbol);
+									}
 									else
 										layerMaskBitfield.SetPosition(fieldSymbol);
 								}
@@ -453,7 +456,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							{
 								var fieldSymbol = fieldDeclaration.GetSymbol() as IField;
 								if (fieldSymbol.IsIntegerConstant() && fieldSymbol.Name.StartsWith("HM_"))
+								{
+									ModifyFieldDeclaration(fieldDeclaration, hitMaskBitfield);
 									hitMaskBitfield.AddMask(fieldSymbol);
+								}
 							}
 						}
 					}
