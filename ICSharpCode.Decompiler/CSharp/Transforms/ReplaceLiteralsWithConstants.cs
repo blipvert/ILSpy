@@ -1,5 +1,5 @@
 //#define DEBUG_ANNOTATE
-//#define BITVALUE_STUFF
+#define BITVALUE_STUFF
 
 using System;
 using System.Linq;
@@ -401,7 +401,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private void CollectConstantDeclarations(AstNode rootNode)
 		{
-#if BITVALUE_STUFF
 			foreach (var typeDeclaration in rootNode.Children.OfType<TypeDeclaration>())
 			{
 				if (typeDeclaration.Role == SyntaxTree.MemberRole)
@@ -438,7 +437,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					}
 				}
 			}
-#endif
 		}
 		#endregion
 
@@ -601,8 +599,38 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 
+		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, Bitfield bitfield)
+		{
+			if (primitiveExpression.Value is int intValue)
+			{
+				var bitValue = bitfield.Decompose(intValue);
+				primitiveExpression.ReplaceWith(bitValue.Express(context).CopyAnnotationsFrom(primitiveExpression));
+			}
+		}
+
 		private void ReplacePrimitiveExpressions(AstNode node)
 		{
+			foreach (var primitiveExpression in node.DescendantsAndSelf.OfType<PrimitiveExpression>())
+			{
+				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
+				if (symbolicContext is not null)
+				{
+					primitiveExpression.RemoveAnnotations<SymbolicContext>();
+					var representation = symbolicContext.Representation;
+					if (representation is not null)
+					{
+						switch (symbolicContext.Representation.Name)
+						{
+							case "LayerMask":
+								ReplacePrimitiveWithSymbolic(primitiveExpression, layerMaskBitfield);
+								break;
+							case "HitMask":
+								ReplacePrimitiveWithSymbolic(primitiveExpression, hitMaskBitfield);
+								break;
+						}
+					}
+				}
+			}
 
 		}
 
@@ -614,13 +642,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			this.context = context;
 			try
 			{
+#if BITVALUE_STUFF
 				CollectConstantDeclarations(node);
+#endif
 				BuildMethodMap(node);
 #if DEBUG_ANNOTATE
 				AnnotateInvocations(node);
 #endif
 				VisitChildren(node, null);
+#if BITVALUE_STUFF
 				ReplacePrimitiveExpressions(node);
+#endif
 			}
 			finally
 			{
