@@ -646,7 +646,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
 				if (symbolicContext is not null)
 				{
+#if !DEBUG_ANNOTATIONS
 					primitiveExpression.RemoveAnnotations<SymbolicContext>();
+#endif
 					var representation = symbolicContext.Representation;
 					if (representation is not null)
 					{
