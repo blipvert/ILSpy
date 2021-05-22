@@ -330,7 +330,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		class Bitfield
 		{
-			private readonly BitPosition[] position = Enumerable.Range(0, 31).Select(x => new BitPosition(x)).ToArray();
+			private readonly BitPosition[] position = Enumerable.Range(0, 32).Select(x => new BitPosition(x)).ToArray();
 
 			public BitPosition[] Position => position;
 
