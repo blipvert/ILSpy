@@ -1,4 +1,5 @@
 //#define DEBUG_ANNOTATE
+#define DEBUG_VERBOSE
 #define BITVALUE_STUFF
 
 using System;
@@ -416,6 +417,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 		#endregion
+
+		private static int instanceCounter = 0;
+		private readonly int instanceNumber;
+
+		public ReplaceLiteralsWithConstants()
+		{
+			instanceNumber = ++instanceCounter;
+#if DEBUG_VERBOSE
+			Console.WriteLine($"ReplaceLiteralsWithConstants: Instance {instanceNumber} constructed");
+#endif
+		}
 
 		#region Collecting Constant Declarations
 		private Bitfield layerMaskBitfield = new();
