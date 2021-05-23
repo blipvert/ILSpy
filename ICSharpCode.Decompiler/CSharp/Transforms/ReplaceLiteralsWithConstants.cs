@@ -445,52 +445,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private Bitfield hitMaskBitfield = new();
 		private Dictionary<IField, Bitmask> masterBitfieldDirectory = new();
 
-		private void CollectConstantDeclarations(AstNode rootNode)
-		{
-			foreach (var typeDeclaration in rootNode.Children.OfType<TypeDeclaration>())
-			{
-				if (typeDeclaration.Role == SyntaxTree.MemberRole)
-				{
-					var typeSymbol = typeDeclaration.GetSymbol();
-					if (typeSymbol.Name == "Constants")
-					{
-						foreach (var fieldDeclaration in typeDeclaration.Children.OfType<FieldDeclaration>())
-						{
-							if (fieldDeclaration.Role == Roles.TypeMemberRole)
-							{
-								var fieldSymbol = fieldDeclaration.GetSymbol() as IField;
-								if (fieldSymbol.IsIntegerConstant() && fieldSymbol.Name.StartsWith("cLayer"))
-								{
-									if (fieldSymbol.Name.StartsWith("cLayerMask"))
-									{
-										ModifyFieldDeclaration(fieldDeclaration, layerMaskBitfield);
-										layerMaskBitfield.AddMask(fieldSymbol);
-									}
-									else
-										layerMaskBitfield.SetPosition(fieldSymbol);
-								}
-							}
-						}
-					}
-					if (typeSymbol.Name == "Voxel")
-					{
-						foreach (var fieldDeclaration in typeDeclaration.Children.OfType<FieldDeclaration>())
-						{
-							if (fieldDeclaration.Role == Roles.TypeMemberRole)
-							{
-								var fieldSymbol = fieldDeclaration.GetSymbol() as IField;
-								if (fieldSymbol.IsIntegerConstant() && fieldSymbol.Name.StartsWith("HM_"))
-								{
-									ModifyFieldDeclaration(fieldDeclaration, hitMaskBitfield);
-									hitMaskBitfield.AddMask(fieldSymbol);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
 		private void PopulateSymbolicBitField(Bitfield bitfield, string definingType, string maskPrefix, string bitPositionPrefix = null)
 		{
 			foreach (var type in context.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType))
