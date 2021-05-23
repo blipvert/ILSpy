@@ -163,7 +163,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<SymbolicContext, int>, IAstTransform
 	{
 		#region BitValue/BitValueExpression/Bitmask/Bitfield
-		abstract class BitValue
+		class BitValue
 		{
 			public virtual bool Inverted => false;
 			public virtual BitValue UninvertedValue => this;
@@ -171,16 +171,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public readonly int Value;
 			public int BitCount => Value.BitCount();
+			public bool Empty => Value == 0;
 
-			public static readonly BitValue Null = new NullBitValue();
-
-			public BitValue(int value, int complexity = 1)
+			public BitValue(int value = 0, int complexity = 1)
 			{
 				Value = value;
 				Complexity = complexity;
 			}
 
-			protected abstract Expression ExpressValue(TransformContext context, IType currentType);
+			protected virtual Expression ExpressValue(TransformContext context, IType currentType)
+			{
+				return new PrimitiveExpression(Value);
+			}
 
 			public virtual Expression Express(TransformContext context, IType currentType)
 			{
@@ -194,70 +196,50 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public virtual BitValue Invert()
 			{
-				return new InvertedBitValueExpression(this);
+				return new InvertedBitmask(this);
 			}
 
 			public virtual BitValue Combine(BitValue other)
 			{
-				return new CombinedBitValue(this, other);
+				return Empty ? other : (other.Empty ? this : new CombinedBitmask(this, other));
 			}
 		}
 
-		class NumericBitValue : BitValue
-		{
-			public NumericBitValue(int value) : base(value) { }
-
-			protected override Expression ExpressValue(TransformContext context, IType currentType)
-			{
-				return new PrimitiveExpression(Value);
-			}
-		}
-
-		class NullBitValue : NumericBitValue
-		{
-			public NullBitValue() : base(0) { }
-			public override BitValue Combine(BitValue other)
-			{
-				return other;
-			}
-		}
-
-		abstract class SimpleBitValue : BitValue
+		abstract class Bitmask : BitValue
 		{
 			protected readonly BitValue bitValue;
 
-			public SimpleBitValue(BitValue bv, int? value = null, int? complexity = null)
+			public Bitmask(BitValue bv, int? value = null, int? complexity = null)
 				: base(value ?? bv.Value, complexity ?? bv.Complexity)
 			{
 				bitValue = bv;
 			}
 		}
 
-		class CombinedBitValue : BitValue
+		class CombinedBitmask : Bitmask
 		{
-			protected readonly BitValue left, right;
+			protected readonly BitValue bitValue2;
 
-			public CombinedBitValue(BitValue left, BitValue right) : base(left.Value | right.Value, left.Complexity + right.Complexity)
+			public CombinedBitmask(BitValue left, BitValue right) : base(left, left.Value | right.Value, left.Complexity + right.Complexity)
 			{
-				this.left = left;
-				this.right = right;
+				bitValue2 = right;
 			}
 			protected override Expression ExpressValue(TransformContext context, IType currentType)
 			{
-				var lhs = left.Express(context, currentType);
-				var rhs = right.Express(context, currentType);
+				var lhs = bitValue.Express(context, currentType);
+				var rhs = bitValue2.Express(context, currentType);
 				return new BinaryOperatorExpression(lhs, BinaryOperatorType.BitwiseOr, rhs);
 			}
 
 			public override BitValue Group()
 			{
-				return new BitValueGroup(this);
+				return new GroupedBitmask(this);
 			}
 		}
 
-		class BitValueGroup : SimpleBitValue
+		class GroupedBitmask : Bitmask
 		{
-			public BitValueGroup(BitValue bv) : base(bv)
+			public GroupedBitmask(BitValue bv) : base(bv)
 			{
 			}
 
@@ -267,12 +249,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class InvertedBitValueExpression : SimpleBitValue
+		class InvertedBitmask : Bitmask
 		{
 			public override bool Inverted => true;
 			public override BitValue UninvertedValue => bitValue;
 
-			public InvertedBitValueExpression(BitValue bv) : base(bv, ~bv.Value, bv.Complexity + 1)
+			public InvertedBitmask(BitValue bv) : base(bv, ~bv.Value, bv.Complexity + 1)
 			{
 			}
 
@@ -287,17 +269,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class Bitmask : SimpleBitValue, IComparable<Bitmask>
+		class NamedBitmask : Bitmask, IComparable<NamedBitmask>
 		{
 			public readonly IField Field;
 			public BitValue Expansion => bitValue;
 
-			public Bitmask(IField field, BitValue bitValue) : base(bitValue.Group(), complexity: 1)
+			public NamedBitmask(IField field, BitValue bitValue) : base(bitValue.Group(), complexity: 1)
 			{
 				Field = field;
 			}
 
-			public int CompareTo(Bitmask other)
+			public int CompareTo(NamedBitmask other)
 			{
 				int d = other.BitCount.CompareTo(BitCount);
 				if (d != 0)
@@ -353,8 +335,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public BitPosition[] Position => position;
 
-			public readonly SortedSet<Bitmask> masks = new();
-			public readonly Dictionary<int, Bitmask> values = new();
+			public readonly SortedSet<NamedBitmask> masks = new();
+			public readonly Dictionary<int, NamedBitmask> values = new();
 
 			public Bitfield()
 			{
@@ -377,7 +359,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			private Bitmask AddMask(Bitmask bitmask, int value)
+			private NamedBitmask AddMask(NamedBitmask bitmask, int value)
 			{
 				if (value != 0)
 					masks.Add(bitmask);
@@ -385,10 +367,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return bitmask;
 			}
 
-			public Bitmask AddMask(IField field)
+			public NamedBitmask AddMask(IField field)
 			{
 				int value = field.IntegerConstantValue();
-				return AddMask(new Bitmask(field, Translate(value)), value);
+				return AddMask(new NamedBitmask(field, Translate(value)), value);
 			}
 
 			public BitValue Translate(int value)
@@ -420,7 +402,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public BitValue Decompose(int value)
 			{
-				return DecomposeIter(value).Aggregate(BitValue.Null, (total, bv) => total.Combine(bv));
+				return DecomposeIter(value).Aggregate(new BitValue(), (total, bv) => total.Combine(bv));
 			}
 		}
 		#endregion
@@ -439,7 +421,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#region Collecting Constant Declarations
 		private Bitfield layerMaskBitfield = new();
 		private Bitfield hitMaskBitfield = new();
-		private Dictionary<IField, Bitmask> masterBitfieldDirectory = new();
+		private Dictionary<IField, NamedBitmask> masterBitfieldDirectory = new();
 
 		private void PopulateSymbolicBitField(Bitfield bitfield, string definingType, string maskPrefix, string bitPositionPrefix = null)
 		{
