@@ -338,11 +338,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			protected override Expression ExpressValue(TransformContext context, IType currentType)
 			{
-				var lhs = 1.CreatePrimitive(context);
-				var op = BinaryOperatorType.ShiftLeft;
-				var rhs = GetPositionExpression(context, currentType);
-				var expr = new BinaryOperatorExpression(lhs, op, rhs).WithCIRR(context, Value);
-				return new ParenthesizedExpression(expr);
+				return
+					new ParenthesizedExpression(
+						new BinaryOperatorExpression(
+							1.CreatePrimitive(context),
+							BinaryOperatorType.ShiftLeft,
+							GetPositionExpression(context, currentType)).WithCIRR(context, Value));
 			}
 
 			public override BitValue Group()
