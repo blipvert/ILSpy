@@ -339,9 +339,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public readonly SortedSet<NamedBitmask> masks = new();
 			public readonly Dictionary<int, NamedBitmask> values = new();
+			private readonly int? maxValue;
+			public int FieldCount { get; private set; } = 0;
+			public bool Empty => FieldCount == 0;
 
-			public Bitfield()
+			public Bitfield(int? bitLength = null)
 			{
+				maxValue = (bitLength is null) ? null : ((1 << (int)bitLength) - 1);
 			}
 
 			public void SetPosition(IField field)
@@ -354,6 +358,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				try
 				{
 					position[field.IntegerConstantValue()].SetField(field);
+					FieldCount++;
 				}
 				catch (Exception e)
 				{
@@ -371,6 +376,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public NamedBitmask AddMask(IField field)
 			{
+				FieldCount++;
 				int value = field.IntegerConstantValue();
 				return AddMask(new NamedBitmask(field, Translate(value)), value);
 			}
@@ -379,6 +385,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				if (values.TryGetValue(value, out var bitmask))
 					return bitmask;
+				if ((maxValue is not null) && value >= maxValue)
+					return new BitValue(value);
 				var bitValue = Decompose(value);
 				var bitValueInv = Decompose(~value).Invert();
 				return bitValueInv.Complexity < bitValue.Complexity ? bitValueInv : bitValue;
@@ -421,14 +429,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 		#region Collecting Constant Declarations
-		private Bitfield layerMaskBitfield = new();
-		private Bitfield hitMaskBitfield = new();
+		private Bitfield layerMaskBitfield;
+		private Bitfield hitMaskBitfield;
 		private Dictionary<IField, NamedBitmask> masterBitfieldDirectory = new();
 
-		private void PopulateSymbolicBitField(Bitfield bitfield, string definingType, string maskPrefix, string bitPositionPrefix = null)
+		private Bitfield CreateSymbolicBitField(string definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
 		{
-			foreach (var type in context.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType))
+			var type = context.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType).SingleOrDefault();
+			if (type is not null)
 			{
+				Bitfield bitfield = new(bitLength);
 				foreach (var field in type.Fields)
 				{
 					if (field.IsIntegerConstant())
@@ -439,13 +449,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							bitfield.SetPosition(field);
 					}
 				}
+				if (!bitfield.Empty)
+					return bitfield;
 			}
+			return null;
 		}
+
 
 		private void PopulateSymbolicBitfields()
 		{
-			PopulateSymbolicBitField(layerMaskBitfield, "Constants", "cLayerMask", "cLayer");
-			PopulateSymbolicBitField(hitMaskBitfield, "Voxel", "HM_");
+			layerMaskBitfield = CreateSymbolicBitField("Constants", "cLayerMask", "cLayer");
+			hitMaskBitfield = CreateSymbolicBitField("Voxel", "HM_", bitLength: 12);
 		}
 
 		#endregion
@@ -656,6 +670,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
+		private Bitfield GetSymbolicBitfield(SymbolicRepresentation symbolicRepresentation)
+		{
+			switch (symbolicRepresentation?.Name)
+			{
+				case "LayerMask":
+					return layerMaskBitfield;
+				case "HitMask":
+					return hitMaskBitfield;
+			}
+			return null;
+		}
+
 		private void ReplacePrimitiveExpressions(AstNode node)
 		{
 			foreach (var primitiveExpression in node.DescendantsAndSelf.OfType<PrimitiveExpression>())
@@ -666,19 +692,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #if !DEBUG_ANNOTATIONS
 					primitiveExpression.RemoveAnnotations<SymbolicContext>();
 #endif
-					var representation = symbolicContext.Representation;
-					if (representation is not null)
-					{
-						switch (symbolicContext.Representation.Name)
-						{
-							case "LayerMask":
-								ReplacePrimitiveWithSymbolic(primitiveExpression, layerMaskBitfield);
-								break;
-							case "HitMask":
-								ReplacePrimitiveWithSymbolic(primitiveExpression, hitMaskBitfield);
-								break;
-						}
-					}
+					var symbolicBitfield = GetSymbolicBitfield(symbolicContext.Representation);
+					if (symbolicBitfield is not null)
+						ReplacePrimitiveWithSymbolic(primitiveExpression, symbolicBitfield);
 				}
 			}
 
