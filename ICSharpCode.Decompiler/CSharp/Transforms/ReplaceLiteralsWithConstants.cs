@@ -345,11 +345,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							BinaryOperatorType.ShiftLeft,
 							GetPositionExpression(context, currentType)).WithCIRR(context, Value));
 			}
-
-			public override BitValue Group()
-			{
-				return this;
-			}
 		}
 
 		class Bitfield
