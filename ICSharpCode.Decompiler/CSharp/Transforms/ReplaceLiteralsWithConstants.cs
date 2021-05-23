@@ -381,17 +381,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			private void AddMask(Bitmask bitmask, int value)
+			private Bitmask AddMask(Bitmask bitmask, int value)
 			{
 				if (value != 0)
 					masks.Add(bitmask);
 				values.Add(value, bitmask);
+				return bitmask;
 			}
 
-			public void AddMask(IField field)
+			public Bitmask AddMask(IField field)
 			{
 				int value = field.IntegerConstantValue();
-				AddMask(new Bitmask(field, Translate(value)), value);
+				return AddMask(new Bitmask(field, Translate(value)), value);
 			}
 
 			public BitValue Translate(int value)
@@ -442,6 +443,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#region Collecting Constant Declarations
 		private Bitfield layerMaskBitfield = new();
 		private Bitfield hitMaskBitfield = new();
+		private Dictionary<IField, Bitmask> masterBitfieldDirectory = new();
 
 		private void CollectConstantDeclarations(AstNode rootNode)
 		{
@@ -488,6 +490,30 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 		}
+
+		private void PopulateSymbolicBitField(Bitfield bitfield, string definingType, string maskPrefix, string bitPositionPrefix = null)
+		{
+			foreach (var type in context.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType))
+			{
+				foreach (var field in type.Fields)
+				{
+					if (field.IsIntegerConstant())
+					{
+						if (field.Name.StartsWith(maskPrefix))
+							masterBitfieldDirectory.Add(field, bitfield.AddMask(field));
+						else if ((bitPositionPrefix is not null) && field.Name.StartsWith(bitPositionPrefix))
+							bitfield.SetPosition(field);
+					}
+				}
+			}
+		}
+
+		private void PopulateSymbolicBitfields()
+		{
+			PopulateSymbolicBitField(layerMaskBitfield, "Constants", "cLayerMask", "cLayer");
+			PopulateSymbolicBitField(hitMaskBitfield, "Voxel", "HM_");
+		}
+
 		#endregion
 
 		#region Identifying invocation variables
@@ -589,6 +615,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
+		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, SymbolicContext symbolicContext)
+		{
+			var field = fieldDeclaration.GetSymbol() as IField;
+			if (masterBitfieldDirectory.TryGetValue(field, out var bitmask))
+			{
+				ModifyFieldDeclaration(fieldDeclaration, bitmask.Expansion);
+			}
+
+			return base.VisitFieldDeclaration(fieldDeclaration, symbolicContext);
+		}
+
 		public override int VisitIdentifier(Identifier identifier, SymbolicContext symbolicContext)
 		{
 			SetRepresentation(ref symbolicContext, identifier.Name);
@@ -649,12 +686,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 
+		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
+		{
+			primitiveExpression.ReplaceWith(bitValue.Express(context).CopyAnnotationsFrom(primitiveExpression));
+		}
+
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, Bitfield bitfield)
 		{
 			if ((primitiveExpression.Value is int intValue) && intValue != 0)
 			{
-				var bitValue = bitfield.Translate(intValue);
-				primitiveExpression.ReplaceWith(bitValue.Express(context).CopyAnnotationsFrom(primitiveExpression));
+				ReplacePrimitiveWithSymbolic(primitiveExpression, bitfield.Translate(intValue));
 			}
 		}
 
@@ -664,6 +705,15 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				if (variable.Initializer is PrimitiveExpression primitiveExpression)
 					ReplacePrimitiveWithSymbolic(primitiveExpression, bitfield);
+			}
+		}
+
+		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, BitValue bitValue)
+		{
+			foreach (var variable in fieldDeclaration.Variables)
+			{
+				if (variable.Initializer is PrimitiveExpression primitiveExpression)
+					ReplacePrimitiveWithSymbolic(primitiveExpression, bitValue);
 			}
 		}
 
@@ -704,7 +754,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			try
 			{
 #if BITVALUE_STUFF
-				CollectConstantDeclarations(node);
+				PopulateSymbolicBitfields();
 #endif
 				BuildMethodMap(node);
 #if DEBUG_ANNOTATE
