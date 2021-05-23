@@ -220,15 +220,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			protected readonly BitValue bitValue2;
 
-			public CombinedBitmask(BitValue left, BitValue right) : base(left, left.Value | right.Value, left.Complexity + right.Complexity)
+			public CombinedBitmask(BitValue bv, BitValue bv2) : base(bv, bv.Value | bv2.Value, bv.Complexity + bv2.Complexity)
 			{
-				bitValue2 = right;
+				bitValue2 = bv2;
 			}
 			protected override Expression ExpressValue(TransformContext context, IType currentType)
 			{
-				var lhs = bitValue.Express(context, currentType);
-				var rhs = bitValue2.Express(context, currentType);
-				return new BinaryOperatorExpression(lhs, BinaryOperatorType.BitwiseOr, rhs);
+				return
+					new BinaryOperatorExpression(
+						bitValue.Express(context, currentType),
+						BinaryOperatorType.BitwiseOr,
+						bitValue2.Express(context, currentType));
 			}
 
 			public override BitValue Group()
