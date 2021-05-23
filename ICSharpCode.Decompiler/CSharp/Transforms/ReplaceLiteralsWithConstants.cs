@@ -580,6 +580,15 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return base.VisitIdentifier(identifier, symbolicContext);
 		}
 
+		public override int VisitConditionalExpression(ConditionalExpression conditionalExpression, SymbolicContext symbolicContext)
+		{
+			UpdateSymbolicContextForNode(conditionalExpression, ref symbolicContext);
+			conditionalExpression.Condition.AcceptVisitor(this, null);
+			conditionalExpression.TrueExpression.AcceptVisitor(this, symbolicContext);
+			conditionalExpression.FalseExpression.AcceptVisitor(this, symbolicContext);
+			return default;
+		}
+
 		public override int VisitPrimitiveExpression(PrimitiveExpression primitiveExpression, SymbolicContext symbolicContext)
 		{
 			primitiveExpression.SaveContext(symbolicContext);
@@ -770,6 +779,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return
 				node is BinaryOperatorExpression binary && (binary.Operator.IsBitwise() || binary.Operator.IsEquality()) ||
 				node is UnaryOperatorExpression unary && unary.Operator == UnaryOperatorType.BitNot ||
+				node is ConditionalExpression ||
 				node is VariableInitializer ||
 				node is MemberReferenceExpression ||
 				node is CastExpression ||
