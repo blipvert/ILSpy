@@ -654,11 +654,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return null;
 		}
 
-		private IType currentDeclaringType = null;
-
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
 		{
-			currentDeclaringType = GetDeclaringType(primitiveExpression)?.GetSymbol() as IType;
+			var currentDeclaringType = GetDeclaringType(primitiveExpression)?.GetSymbol() as IType;
 			primitiveExpression.ReplaceWith(bitValue.Express(context, currentDeclaringType).CopyAnnotationsFrom(primitiveExpression));
 		}
 
