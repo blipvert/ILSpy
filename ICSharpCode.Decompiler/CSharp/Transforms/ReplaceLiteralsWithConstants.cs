@@ -643,21 +643,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
 		}
 
-		private TypeDeclaration GetDeclaringType(AstNode node)
-		{
-			while (node is not null)
-			{
-				if (node is TypeDeclaration typeDeclaration)
-					return typeDeclaration;
-				node = node.Parent;
-			}
-			return null;
-		}
-
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
 		{
-			var currentDeclaringType = GetDeclaringType(primitiveExpression)?.GetSymbol() as IType;
-			primitiveExpression.ReplaceWith(bitValue.Express(context, currentDeclaringType).CopyAnnotationsFrom(primitiveExpression));
+			primitiveExpression.ReplaceWith(bitValue.Express(context, primitiveExpression.GetEnclosingType()).CopyAnnotationsFrom(primitiveExpression));
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, Bitfield bitfield)
@@ -802,6 +790,21 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			if (!variable.IsIntegerConstant())
 				throw new ArgumentException($"{variable} is not an Int32 constant");
 			return (int)variable.GetConstantValue(true);
+		}
+
+		public static TypeDeclaration GetDeclaringType(this AstNode node)
+		{
+			while ((node = node.Parent) is not null)
+			{
+				if (node is TypeDeclaration typeDeclaration)
+					return typeDeclaration;
+			}
+			return null;
+		}
+
+		public static IType GetEnclosingType(this AstNode node)
+		{
+			return node.GetDeclaringType()?.GetSymbol() as IType;
 		}
 
 		public static Expression CreateTypeReference(this IType type, TransformContext context)
