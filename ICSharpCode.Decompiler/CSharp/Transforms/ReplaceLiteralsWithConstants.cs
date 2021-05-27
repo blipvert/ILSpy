@@ -172,6 +172,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public readonly int Value;
 			public int BitCount => Value.BitCount();
 			public bool Empty => Value == 0;
+			public virtual IField Field => null;
 
 			public BitValue(int value = 0, int complexity = 1)
 			{
@@ -273,12 +274,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		class NamedBitmask : Bitmask, IComparable<NamedBitmask>
 		{
-			public readonly IField Field;
+			public override IField Field => field;
 			public BitValue Expansion => bitValue;
+
+			private readonly IField field;
 
 			public NamedBitmask(IField field, BitValue bitValue) : base(bitValue.Group(), complexity: 1)
 			{
-				Field = field;
+				this.field = field;
 			}
 
 			public int CompareTo(NamedBitmask other)
@@ -302,6 +305,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		class BitPosition : BitValue
 		{
+			public override IField Field => field;
 			private IField field = null;
 			public readonly int position;
 			public BitPosition(int position) : base(1 << position)
@@ -317,7 +321,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			private Expression GetPositionExpression(TransformContext context, IType currentType)
 			{
-				return (field is null) ? position.CreatePrimitive(context) : field.CreateMemberReference(context, currentType);
+				return (Field is null) ? position.CreatePrimitive(context) : Field.CreateMemberReference(context, currentType);
 			}
 
 			public override Expression Express(TransformContext context, IType currentType)
