@@ -179,14 +179,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				Complexity = complexity;
 			}
 
-			protected virtual Expression ExpressValue(TransformContext context, IType currentType)
+			public virtual Expression Express(TransformContext context, IType currentType)
 			{
 				return new PrimitiveExpression(Value);
 			}
 
-			public virtual Expression Express(TransformContext context, IType currentType)
+			public virtual Expression Translate(TransformContext context, IType currentType)
 			{
-				return ExpressValue(context, currentType).WithCIRR(context, Value);
+				return Express(context, currentType).WithCIRR(context, Value);
 			}
 
 			public virtual BitValue Group()
@@ -224,13 +224,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				bitValue2 = bv2;
 			}
-			protected override Expression ExpressValue(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context, IType currentType)
 			{
 				return
 					new BinaryOperatorExpression(
-						bitValue.Express(context, currentType),
+						bitValue.Translate(context, currentType),
 						BinaryOperatorType.BitwiseOr,
-						bitValue2.Express(context, currentType));
+						bitValue2.Translate(context, currentType));
 			}
 
 			public override BitValue Group()
@@ -245,9 +245,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 			}
 
-			protected override Expression ExpressValue(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context, IType currentType)
 			{
-				return new ParenthesizedExpression(bitValue.Express(context, currentType));
+				return new ParenthesizedExpression(bitValue.Translate(context, currentType));
 			}
 		}
 
@@ -260,9 +260,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 			}
 
-			protected override Expression ExpressValue(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context, IType currentType)
 			{
-				return new UnaryOperatorExpression(UnaryOperatorType.BitNot, bitValue.Express(context, currentType));
+				return new UnaryOperatorExpression(UnaryOperatorType.BitNot, bitValue.Translate(context, currentType));
 			}
 
 			public override BitValue Invert()
@@ -289,14 +289,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return other.Value.CompareTo(Value);
 			}
 
-			protected override Expression ExpressValue(TransformContext context, IType currentType)
-			{
-				throw new NotImplementedException();
-			}
-
 			public override Expression Express(TransformContext context, IType currentType)
 			{
 				return Field.CreateMemberReference(context, currentType);
+			}
+
+			public override Expression Translate(TransformContext context, IType currentType)
+			{
+				return Express(context, currentType).WithMemberRR(context, Field);
 			}
 		}
 
@@ -320,7 +320,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return (field is null) ? position.CreatePrimitive(context) : field.CreateMemberReference(context, currentType);
 			}
 
-			protected override Expression ExpressValue(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context, IType currentType)
 			{
 				return
 					new ParenthesizedExpression(
@@ -807,29 +807,22 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return node.GetDeclaringType()?.GetSymbol() as IType;
 		}
 
-		public static Expression CreateTypeReference(this IType type, TransformContext context)
-		{
-			return new TypeReferenceExpression(context.TypeSystemAstBuilder.ConvertType(type))
-				.WithoutILInstruction()
-				.WithRR(new TypeResolveResult(type));
-		}
-
 		public static Expression CreateMemberReference(this IMember member, TransformContext context, IType currentType)
 		{
 			var declaringType = member.DeclaringType;
 			if (declaringType == currentType)
-				return new IdentifierExpression(member.Name)
-					.WithRR(new MemberResolveResult(new TypeResolveResult(declaringType), member));
+				return new IdentifierExpression(member.Name);
 
-			var target = declaringType.CreateTypeReference(context);
-			return new MemberReferenceExpression(target, member.Name)
-				.WithRR(new MemberResolveResult(target.GetResolveResult(), member));
+			return new MemberReferenceExpression(
+				new TypeReferenceExpression(context.TypeSystemAstBuilder.ConvertType(declaringType))
+							.WithRR(new TypeResolveResult(declaringType)), member.Name);
 		}
 
-		public static Expression CreateIdentifierReference(this IMember member, TransformContext context)
+		public static Expression WithMemberRR(this Expression expr, TransformContext context, IMember m)
 		{
-			return new IdentifierExpression(member.Name)
-				.WithRR(new MemberResolveResult(new TypeResolveResult(member.DeclaringType), member));
+			return expr
+				.WithRR(new MemberResolveResult(
+					(expr is MemberReferenceExpression mre) ? mre.Target.GetResolveResult() : new TypeResolveResult(m.DeclaringType), m));
 		}
 
 		public static Expression CreatePrimitive(this int value, TransformContext context)
@@ -839,9 +832,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public static Expression WithCIRR(this Expression expression, TransformContext context, int value)
 		{
-			return expression.WithoutILInstruction()
+			return expression
 				.WithRR(new ConstantResolveResult(context.TypeSystem.FindType(KnownTypeCode.Int32), value));
 		}
 	}
-	#endregion
+#endregion
 }
