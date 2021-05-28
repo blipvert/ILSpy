@@ -653,10 +653,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
 #if DEBUG_ANNOTATE
-			if (node is not PrimitiveExpression)
-				node.SaveContext(symbolicContext);
+			var inheritedContext = symbolicContext;
 #endif
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
+#if DEBUG_ANNOTATE
+			if (node is not PrimitiveExpression)
+				node.SaveContext(inheritedContext ?? symbolicContext);
+#endif
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
