@@ -58,13 +58,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	{
 		public class Inference
 		{
+			private static int inferenceCount = 0;
 			public SymbolicRepresentation Representation;
-			public readonly int OriginalContextNumber;
+			public readonly int InferenceNumber;
 
-			public Inference(SymbolicRepresentation representation, int contextNumber)
+			public Inference(SymbolicRepresentation representation = null)
 			{
 				Representation = representation;
-				OriginalContextNumber = contextNumber;
+				InferenceNumber = ++inferenceCount;
 			}
 
 			public void Merge(Inference other)
@@ -76,9 +77,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private static int contextCount = 0;
 		private Inference inference;
 		public readonly int ContextNumber;
-		private bool HasInference => ContextNumber != inference.OriginalContextNumber || inference.Representation is not null;
-		private int InferenceNumber => inference.OriginalContextNumber;
-		public string ContextNumberString => HasInference ? $"{ContextNumber}/{InferenceNumber}" : ContextNumber.ToString();
+		private bool HasInference => inference is not null;
+		private int InferenceNumber => inference.InferenceNumber;
+		public string ContextNumberString => HasInference ? $"{ContextNumber}/{inference.InferenceNumber}" : ContextNumber.ToString();
 
 		private string DebuggerDisplay {
 			get {
@@ -90,10 +91,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		public SymbolicContext(SymbolicRepresentation representation = null)
+		public SymbolicContext()
 		{
-			inference = new(representation, ++contextCount);
-			ContextNumber = contextCount;
+			ContextNumber = ++contextCount;
+		}
+
+		public SymbolicContext(SymbolicRepresentation representation) : this()
+		{
+			inference = new(representation);
 		}
 
 		public void Merge(SymbolicContext other)
@@ -123,10 +128,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		public SymbolicRepresentation Representation => inference.Representation;
+		public SymbolicRepresentation Representation => inference?.Representation;
 		public void SetRepresentation(SymbolicRepresentation representation, bool force = false)
 		{
-			if (inference.Representation == null || force)
+			if (inference is null)
+				inference = new(representation);
+			else if (inference.Representation == null || force)
 			{
 				inference.Representation = representation;
 			}
@@ -776,7 +783,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public static SymbolicContext Ensure(this SymbolicContext context)
 		{
-			return context ?? new();
+			return context ?? new(null);
 		}
 
 		public static ILVariable GetILVariable(this AstNode node)
