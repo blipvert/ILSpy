@@ -557,21 +557,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #endif
 		#endregion
 
-		private Dictionary<ILVariable, SymbolicContext> variableContextMap = new();
+		private Dictionary<ILVariable, SymbolicContext.Inference> variableContextMap = new();
 
 		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
 		{
 			if (variable is null)
 				return mergeContext;
 
-			if (variableContextMap.TryGetValue(variable, out var variableContext))
+			if (!variableContextMap.TryGetValue(variable, out var inference))
 			{
-				variableContext.Merge(ref mergeContext);
+				variableContextMap.Add(variable, inference = new());
 			}
-			else
-			{
-				variableContextMap.Add(variable, mergeContext = mergeContext.Ensure());
-			}
+			(mergeContext ??= new()).Merge(inference);
 			return mergeContext;
 		}
 
@@ -783,7 +780,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public static SymbolicContext Ensure(this SymbolicContext context)
 		{
-			return context ?? new(null);
+			return context ?? new();
 		}
 
 		public static ILVariable GetILVariable(this AstNode node)
