@@ -559,13 +559,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			if (variableContextMap.TryGetValue(variable, out var variableContext))
 			{
-				variableContext.Merge(mergeContext);
+				variableContext.Merge(ref mergeContext);
 			}
 			else
 			{
-				variableContextMap.Add(variable, variableContext = mergeContext.Ensure());
+				variableContextMap.Add(variable, mergeContext = mergeContext.Ensure());
 			}
-			return variableContext;
+			return mergeContext;
 		}
 
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
