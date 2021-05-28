@@ -98,7 +98,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public void Merge(SymbolicContext other)
 		{
-			if (other != null)
+			if (other != null && other != this)
 			{
 				other.inference.Merge(inference);
 				inference = other.inference;
