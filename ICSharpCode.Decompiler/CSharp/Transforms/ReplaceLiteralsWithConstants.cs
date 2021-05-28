@@ -633,9 +633,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							var invocationParameter = invocationMethod.GetParameter(argumentIndex++, argMap);
 							if (invocationParameter is not null)
 							{
-								var variable = invocationParameter.Variable;
-								if (variable is not null)
-									symbolicContext = GetVariableContext(variable, symbolicContext);
+								symbolicContext = GetVariableContext(invocationParameter.Variable, symbolicContext);
 								SetRepresentation(ref symbolicContext, invocationParameter.parameter.Name);
 							}
 						}
