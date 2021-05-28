@@ -100,8 +100,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			if (other != null && other != this)
 			{
-				other.inference.Merge(inference);
-				inference = other.inference;
+				Merge(other.inference);
+				other.inference = inference;
 			}
 		}
 
@@ -111,6 +111,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				other = this;
 			else
 				other.Merge(this);
+		}
+
+		public void Merge(Inference inference)
+		{
+			if (inference is not null)
+			{
+				if (this.inference is not null)
+					this.inference.Merge(inference);
+				this.inference = inference;
+			}
 		}
 
 		public SymbolicRepresentation Representation => inference.Representation;
