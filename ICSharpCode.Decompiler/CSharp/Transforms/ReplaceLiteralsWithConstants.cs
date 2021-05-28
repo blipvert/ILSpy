@@ -871,5 +871,5 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				.WithRR(new ConstantResolveResult(context.TypeSystem.FindType(KnownTypeCode.Int32), value));
 		}
 	}
-#endregion
+	#endregion
 }
