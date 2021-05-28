@@ -76,16 +76,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private static int contextCount = 0;
 		private Inference inference;
 		public readonly int ContextNumber;
+		public bool HasInference => ContextNumber != inference.OriginalContextNumber || inference.Representation is not null;
 		public int InferenceNumber => inference.OriginalContextNumber;
+		public string ContextNumberString => HasInference ? $"{ContextNumber}/{InferenceNumber}" : ContextNumber.ToString();
 
 		private string DebuggerDisplay {
 			get {
 				string representationName = Representation?.Name;
 				if (representationName is null)
-					return $"[Context {InferenceNumber}]";
+					return $"[Context {ContextNumberString}]";
 				else
-					return $"[Context {InferenceNumber} = {representationName}]";
-		    }
+					return $"[Context {ContextNumberString} = {representationName}]";
+			}
 		}
 
 		public SymbolicContext(SymbolicRepresentation representation = null)
