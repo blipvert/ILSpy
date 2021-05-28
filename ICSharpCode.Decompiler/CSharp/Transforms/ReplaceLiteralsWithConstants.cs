@@ -78,7 +78,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private Inference inference;
 		private readonly int ContextNumber;
 		private bool HasInference => inference is not null;
-		private int InferenceNumber => inference.InferenceNumber;
 		public string ContextNumberString => HasInference ? $"{ContextNumber}/{inference.InferenceNumber}" : ContextNumber.ToString();
 
 		private string DebuggerDisplay {
