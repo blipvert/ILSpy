@@ -784,19 +784,26 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return
 				node is BinaryOperatorExpression binary && (binary.Operator.IsBitwise() || binary.Operator.IsEquality()) ||
 				node is UnaryOperatorExpression unary && unary.Operator == UnaryOperatorType.BitNot ||
+				node is AssignmentExpression assign && (assign.Operator == AssignmentOperatorType.Assign || assign.Operator.IsBitwise()) ||
 				node is ConditionalExpression ||
 				node is VariableInitializer ||
 				node is MemberReferenceExpression ||
 				node is CastExpression ||
 				node is IdentifierExpression ||
 				node is NamedArgumentExpression ||
-				node is ParenthesizedExpression ||
-				node is AssignmentExpression;
+				node is ParenthesizedExpression;
 		}
 
 		public static bool IsEquality(this BinaryOperatorType operatorType)
 		{
 			return operatorType == BinaryOperatorType.Equality || operatorType == BinaryOperatorType.InEquality;
+		}
+
+		public static bool IsBitwise(this AssignmentOperatorType operatorType)
+		{
+			return operatorType == AssignmentOperatorType.BitwiseAnd
+				|| operatorType == AssignmentOperatorType.BitwiseOr
+				|| operatorType == AssignmentOperatorType.ExclusiveOr;
 		}
 
 		public static bool IsIntegerConstant(this IVariable variable)
