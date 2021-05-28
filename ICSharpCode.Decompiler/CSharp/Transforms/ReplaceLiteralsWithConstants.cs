@@ -69,7 +69,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public void Merge(Inference other)
 			{
-				Representation = SymbolicRepresentation.Merge(Representation, other.Representation);
+				Representation = other.Representation = SymbolicRepresentation.Merge(Representation, other.Representation);
 			}
 		}
 
