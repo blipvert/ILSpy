@@ -51,6 +51,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	#endregion
 
 	#region SymbolicContext
+
+	[DebuggerDisplay("{DebuggerDisplay,nq}")]
 	public class SymbolicContext
 	{
 		public class Inference
@@ -74,6 +76,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private Inference inference;
 		public readonly int ContextNumber;
 		public int InferenceNumber => inference.OriginalContextNumber;
+
+		private string DebuggerDisplay {
+			get {
+				string representationName = Representation?.Name;
+				if (representationName is null)
+					return $"[Context {InferenceNumber}]";
+				else
+					return $"[Context {InferenceNumber} = {representationName}]";
+		    }
+		}
 
 		public SymbolicContext(SymbolicRepresentation representation = null)
 		{
