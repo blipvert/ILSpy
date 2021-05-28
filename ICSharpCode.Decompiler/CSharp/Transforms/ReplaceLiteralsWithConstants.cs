@@ -105,6 +105,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
+		public void Merge(ref SymbolicContext other)
+		{
+			if (other is null)
+				other = this;
+			else
+				other.Merge(this);
+		}
+
 		public SymbolicRepresentation Representation => inference.Representation;
 		public void SetRepresentation(SymbolicRepresentation representation, bool force = false)
 		{
