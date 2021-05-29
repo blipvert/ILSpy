@@ -639,7 +639,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitPrimitiveExpression(PrimitiveExpression primitiveExpression, SymbolicContext symbolicContext)
 		{
-			primitiveExpression.SaveContext(symbolicContext);
 			return base.VisitPrimitiveExpression(primitiveExpression, symbolicContext);
 		}
 
@@ -681,15 +680,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
-			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-#if DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
-			var inheritedContext = symbolicContext;
-#endif
+			var inheritedContext = symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
-#if DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
-			if (node is not PrimitiveExpression)
-				node.SaveContext(inheritedContext ?? symbolicContext);
-#endif
+			node.SaveContext(inheritedContext ?? symbolicContext);
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
@@ -733,15 +726,20 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
 				if (symbolicContext is not null)
 				{
-#if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
-					primitiveExpression.RemoveAnnotations<SymbolicContext>();
-#endif
 					var symbolicBitfield = GetSymbolicBitfield(symbolicContext.Representation);
 					if (symbolicBitfield is not null)
 						ReplacePrimitiveWithSymbolic(primitiveExpression, symbolicBitfield);
 				}
 			}
 
+		}
+
+		private void CleanupSymbolicAnnotations(AstNode root)
+		{
+			foreach (var node in root.DescendantNodesAndSelf())
+			{
+				node.RemoveAnnotations<SymbolicContext>();
+			}
 		}
 
 
@@ -762,6 +760,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				VisitChildren(node, null);
 #if BITVALUE_STUFF
 				ReplacePrimitiveExpressions(node);
+#endif
+#if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
+				CleanupSymbolicAnnotations(node);
 #endif
 			}
 			finally
