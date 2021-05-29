@@ -83,7 +83,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			{
 				WriteAttribute("ResolveResult", resolveResult.GetType().Name);
 			}
-			WriteContextAttributes(node.Annotation<SymbolicContext>());
+			WriteContextAttributes(node.Annotation<ISymbolicContext>());
 			node.AcceptVisitor(this);
 			if (node is Expression && !(node.Parent is Expression))
 			{
@@ -188,15 +188,15 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			}
 		}
 
-		private void WriteContextAttributes(SymbolicContext symbolicContext)
+		private void WriteContextAttributes(ISymbolicContext symbolicContext)
 		{
 			if (symbolicContext != null)
 			{
 				WriteAttribute("Context", symbolicContext.ContextNumberString);
-				var representation = symbolicContext.Representation;
+				var representation = symbolicContext.RepresentationString;
 				if (representation != null)
 				{
-					WriteAttribute("Representation", representation.Name);
+					WriteAttribute("Representation", representation);
 				}
 			}
 		}

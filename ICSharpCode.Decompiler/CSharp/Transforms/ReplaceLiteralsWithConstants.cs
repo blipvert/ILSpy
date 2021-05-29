@@ -30,6 +30,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public SymbolicRepresentationIncompatibleMerge(string message) : base(message) { }
 	}
 
+	public interface ISymbolicContext
+	{
+		abstract string ContextNumberString { get; }
+		abstract string RepresentationString { get; }
+	}
+
 	public class SymbolicRepresentation
 	{
 		public readonly string Name;
@@ -54,7 +60,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	#region SymbolicContext
 
 	[DebuggerDisplay("{DebuggerDisplay,nq}")]
-	public class SymbolicContext
+	public class SymbolicContext : ISymbolicContext
 	{
 		public class Inference
 		{
@@ -79,10 +85,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private readonly int ContextNumber;
 		private bool HasInference => inference is not null;
 		public string ContextNumberString => HasInference ? $"{ContextNumber}/{inference.InferenceNumber}" : ContextNumber.ToString();
+		public string RepresentationString => Representation?.Name;
 
 		private string DebuggerDisplay {
 			get {
-				string representationName = Representation?.Name;
+				string representationName = RepresentationString;
 				if (representationName is null)
 					return $"[Context {ContextNumberString}]";
 				else
