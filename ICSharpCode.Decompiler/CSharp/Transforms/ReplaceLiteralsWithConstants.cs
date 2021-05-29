@@ -33,6 +33,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 	public interface ISymbolicContext
 	{
+		abstract int ContextNumber { get; }
+		abstract int? InferenceNumber { get; }
+		abstract bool HasInference { get; }
 		abstract string ContextNumberString { get; }
 		abstract string RepresentationString { get; }
 	}
@@ -83,9 +86,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private static int contextCount = 0;
 		private Inference inference;
-		private readonly int ContextNumber;
-		private bool HasInference => inference is not null;
-		public string ContextNumberString => HasInference ? $"{ContextNumber}/{inference.InferenceNumber}" : ContextNumber.ToString();
+		private readonly int contextNumber;
+		public int ContextNumber => contextNumber;
+		public int? InferenceNumber => inference?.InferenceNumber;
+		public bool HasInference => inference is not null;
+		public string ContextNumberString => HasInference ? $"{contextNumber}/{inference.InferenceNumber}" : contextNumber.ToString();
 		public string RepresentationString => Representation?.Name;
 
 		private string DebuggerDisplay {
@@ -100,7 +105,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public SymbolicContext()
 		{
-			ContextNumber = ++contextCount;
+			contextNumber = ++contextCount;
 		}
 
 		public SymbolicContext(SymbolicRepresentation representation) : this()
