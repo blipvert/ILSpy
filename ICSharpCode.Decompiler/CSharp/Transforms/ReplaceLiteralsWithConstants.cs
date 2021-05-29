@@ -1,4 +1,5 @@
-//#define DEBUG_ANNOTATE
+//#define DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
+//#define DEBUG_ANNOTATE_INVOCATIONS
 //#define DEBUG_VERBOSE
 #define BITVALUE_STUFF
 
@@ -528,7 +529,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					{
 						var invocationParameter = invocationMethod.parameters[index];
 						invocationParameter.Variable = parameterDeclaration.GetILVariable();
-#if DEBUG_ANNOTATE
+#if DEBUG_ANNOTATE_INVOCATIONS
 						parameterDeclaration.AddAnnotation(invocationParameter);
 #endif
 					}
@@ -536,7 +537,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-#if DEBUG_ANNOTATE
+#if DEBUG_ANNOTATE_INVOCATIONS
 		private void AnnotateInvocations(AstNode rootNode)
 		{
 			foreach (var invocationExpression in rootNode.DescendantsAndSelf.OfType<InvocationExpression>())
@@ -681,11 +682,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
 			symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-#if DEBUG_ANNOTATE
+#if DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
 			var inheritedContext = symbolicContext;
 #endif
 			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
-#if DEBUG_ANNOTATE
+#if DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
 			if (node is not PrimitiveExpression)
 				node.SaveContext(inheritedContext ?? symbolicContext);
 #endif
@@ -732,7 +733,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
 				if (symbolicContext is not null)
 				{
-#if !DEBUG_ANNOTATIONS
+#if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
 					primitiveExpression.RemoveAnnotations<SymbolicContext>();
 #endif
 					var symbolicBitfield = GetSymbolicBitfield(symbolicContext.Representation);
@@ -755,7 +756,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				PopulateSymbolicBitfields();
 #endif
 				BuildMethodMap(node);
-#if DEBUG_ANNOTATE
+#if DEBUG_ANNOTATE_INVOCATIONS
 				AnnotateInvocations(node);
 #endif
 				VisitChildren(node, null);
