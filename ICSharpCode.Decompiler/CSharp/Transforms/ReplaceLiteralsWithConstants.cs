@@ -39,64 +39,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract string RepresentationString { get; }
 	}
 
-	#region InvocationMethod/InvocationParameter
-	public class InvocationParameter
+	public interface IInvocationParameter
 	{
-		private static int counter = 0;
-		public readonly int uniqueId;
-		public readonly IParameter parameter;
-		private ILVariable variable = null;
-		public ILVariable Variable {
-			get { return variable; }
-			internal set {
-				if (variable is null)
-					variable = value;
-				else if (variable != value)
-					throw new InvalidOperationException("Parameter variable changed");
-			}
-		}
-		public InvocationParameter(IParameter parameter, ILVariable variable = null)
-		{
-			this.parameter = parameter;
-			this.variable = variable;
-			uniqueId = ++counter;
-		}
+		abstract int UniqueId { get; }
+		abstract IParameter Parameter { get; }
+		abstract ILVariable Variable { get; }
 	}
-
-	public class InvocationMethod
-	{
-		public readonly IMethod method;
-		public readonly InvocationParameter[] parameters;
-
-		public InvocationMethod(IMethod method)
-		{
-			if (method is null)
-				throw new ArgumentNullException(nameof(method));
-			this.method = method;
-			parameters = method.Parameters.Select(p => new InvocationParameter(p)).ToArray();
-		}
-
-		public InvocationParameter GetParameter(int index)
-		{
-			return (index >= 0 && index < parameters.Length) ? parameters[index] : null;
-		}
-
-		public InvocationParameter GetParameter(int index, IReadOnlyList<int> mapper)
-		{
-			if (mapper is not null)
-				index = mapper[index];
-			return GetParameter(index);
-		}
-	}
-
-	public class MethodAutoMap : AutoInsertDictionary<IMethod, InvocationMethod>
-	{
-		public override InvocationMethod NewValue(IMethod method)
-		{
-			return new(method);
-		}
-	}
-	#endregion
 
 	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<ReplaceLiteralsWithConstants.SymbolicContext, int>, IAstTransform
 	{
@@ -520,6 +468,67 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		#endregion
 
+		#region InvocationMethod/InvocationParameter
+		public class InvocationParameter
+		{
+			private static int counter = 0;
+			public int UniqueId => uniqueId;
+			private readonly int uniqueId;
+			public IParameter Parameter => parameter;
+			private ILVariable variable = null;
+			private readonly IParameter parameter;
+			public ILVariable Variable {
+				get { return variable; }
+				internal set {
+					if (variable is null)
+						variable = value;
+					else if (variable != value)
+						throw new InvalidOperationException("Parameter variable changed");
+				}
+			}
+			public InvocationParameter(IParameter parameter, ILVariable variable = null)
+			{
+				this.parameter = parameter;
+				this.variable = variable;
+				uniqueId = ++counter;
+			}
+		}
+
+		public class InvocationMethod
+		{
+			public readonly IMethod method;
+			public readonly InvocationParameter[] parameters;
+
+			public InvocationMethod(IMethod method)
+			{
+				if (method is null)
+					throw new ArgumentNullException(nameof(method));
+				this.method = method;
+				parameters = method.Parameters.Select(p => new InvocationParameter(p)).ToArray();
+			}
+
+			public InvocationParameter GetParameter(int index)
+			{
+				return (index >= 0 && index < parameters.Length) ? parameters[index] : null;
+			}
+
+			public InvocationParameter GetParameter(int index, IReadOnlyList<int> mapper)
+			{
+				if (mapper is not null)
+					index = mapper[index];
+				return GetParameter(index);
+			}
+		}
+
+		public class MethodAutoMap : AutoInsertDictionary<IMethod, InvocationMethod>
+		{
+			public override InvocationMethod NewValue(IMethod method)
+			{
+				return new(method);
+			}
+		}
+		#endregion
+
 		#region Identifying invocation variables
 		public readonly MethodAutoMap methodMap = new();
 
@@ -667,7 +676,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							if (invocationParameter is not null)
 							{
 								symbolicContext = GetVariableContext(invocationParameter.Variable, symbolicContext);
-								SetRepresentation(ref symbolicContext, invocationParameter.parameter.Name);
+								SetRepresentation(ref symbolicContext, invocationParameter.Parameter.Name);
 							}
 						}
 						child.AcceptVisitor(this, symbolicContext);

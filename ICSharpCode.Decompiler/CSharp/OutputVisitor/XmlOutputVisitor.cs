@@ -69,12 +69,12 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			{
 				WriteAttribute("Variable", variable.Name, true);
 			}
-			var parameter = node.Annotation<InvocationParameter>();
+			var parameter = node.Annotation<IInvocationParameter>();
 			if (parameter != null)
 			{
-				WriteAttribute("ParameterId", parameter.uniqueId);
-				WriteAttribute("ParameterSymbol", parameter.parameter.Name);
-				WriteAttribute("ParameterSymbolType", parameter.parameter.GetType().Name);
+				WriteAttribute("ParameterId", parameter.UniqueId);
+				WriteAttribute("ParameterSymbol", parameter.Parameter.Name);
+				WriteAttribute("ParameterSymbolType", parameter.Parameter.GetType().Name);
 				if (parameter.Variable is not null)
 					WriteAttribute("ParameterVariable", parameter.Variable.Name);
 			}
