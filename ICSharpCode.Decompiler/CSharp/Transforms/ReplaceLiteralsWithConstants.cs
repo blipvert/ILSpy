@@ -834,6 +834,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				node is ParenthesizedExpression;
 		}
 
+		public static ISymbolicContext GetSymbolicContext(this AstNode node)
+		{
+			return node.Annotation<ISymbolicContext>();
+		}
+
 		public static bool IsEquality(this BinaryOperatorType operatorType)
 		{
 			return operatorType == BinaryOperatorType.Equality || operatorType == BinaryOperatorType.InEquality;
