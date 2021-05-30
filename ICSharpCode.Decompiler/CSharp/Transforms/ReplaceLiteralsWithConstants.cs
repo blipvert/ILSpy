@@ -695,8 +695,23 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
 			var inheritedContext = symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			symbolicContext = node.HasSymbolicContext() ? symbolicContext ?? new() : null;
+			symbolicContext = NeedsSymbolicContext(node) ? symbolicContext ?? new() : null;
 			node.SaveContext(inheritedContext ?? symbolicContext);
+		}
+
+		private static bool NeedsSymbolicContext(AstNode node)
+		{
+			return
+				node is BinaryOperatorExpression binary && (binary.Operator.IsBitwise() || binary.Operator.IsEquality()) ||
+				node is UnaryOperatorExpression unary && unary.Operator == UnaryOperatorType.BitNot ||
+				node is AssignmentExpression assign && (assign.Operator == AssignmentOperatorType.Assign || assign.Operator.IsBitwise()) ||
+				node is ConditionalExpression ||
+				node is VariableInitializer ||
+				node is MemberReferenceExpression ||
+				node is CastExpression ||
+				node is IdentifierExpression ||
+				node is NamedArgumentExpression ||
+				node is ParenthesizedExpression;
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
@@ -817,21 +832,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 				node.AddAnnotation(symbolicContext);
 			}
-		}
-
-		public static bool HasSymbolicContext(this AstNode node)
-		{
-			return
-				node is BinaryOperatorExpression binary && (binary.Operator.IsBitwise() || binary.Operator.IsEquality()) ||
-				node is UnaryOperatorExpression unary && unary.Operator == UnaryOperatorType.BitNot ||
-				node is AssignmentExpression assign && (assign.Operator == AssignmentOperatorType.Assign || assign.Operator.IsBitwise()) ||
-				node is ConditionalExpression ||
-				node is VariableInitializer ||
-				node is MemberReferenceExpression ||
-				node is CastExpression ||
-				node is IdentifierExpression ||
-				node is NamedArgumentExpression ||
-				node is ParenthesizedExpression;
 		}
 
 		public static ISymbolicContext GetSymbolicContext(this AstNode node)
