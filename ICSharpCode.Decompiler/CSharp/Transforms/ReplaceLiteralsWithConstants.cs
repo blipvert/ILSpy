@@ -863,19 +863,31 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return (int)variable.GetConstantValue(true);
 		}
 
-		public static TypeDeclaration GetDeclaringType(this AstNode node)
+		public static T GetAncestor<T>(this AstNode node)
+			where T : AstNode
 		{
 			while ((node = node.Parent) is not null)
 			{
-				if (node is TypeDeclaration typeDeclaration)
-					return typeDeclaration;
+				if (node is T parent)
+					return parent;
 			}
 			return null;
 		}
 
+		public static ISymbol GetEnclosing<T>(this AstNode node)
+			where T : AstNode
+		{
+			return node.GetAncestor<T>()?.GetSymbol();
+		}
+
+		public static TypeDeclaration GetDeclaringType(this AstNode node)
+		{
+			return node.GetAncestor<TypeDeclaration>();
+		}
+
 		public static IType GetEnclosingType(this AstNode node)
 		{
-			return node.GetDeclaringType()?.GetSymbol() as IType;
+			return node.GetEnclosing<TypeDeclaration>() as IType;
 		}
 
 		public static Expression CreateMemberReference(this IMember member, TransformContext context, IType currentType)
