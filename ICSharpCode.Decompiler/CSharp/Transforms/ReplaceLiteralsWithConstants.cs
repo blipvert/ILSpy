@@ -24,7 +24,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	/// This is a crock.
 	/// </remarks>
 
-	#region SymbolicRepresentation
 	public class SymbolicRepresentationIncompatibleMerge : Exception
 	{
 		public SymbolicRepresentationIncompatibleMerge() { }
@@ -39,119 +38,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract string ContextNumberString { get; }
 		abstract string RepresentationString { get; }
 	}
-
-	public class SymbolicRepresentation
-	{
-		public readonly string Name;
-		public SymbolicRepresentation(string name)
-		{
-			this.Name = name;
-		}
-
-		public static SymbolicRepresentation Merge(SymbolicRepresentation rep1, SymbolicRepresentation rep2)
-		{
-			if (rep1 == rep2)
-				return rep1;
-			if (rep1 == null)
-				return rep2;
-			if (rep2 == null)
-				return rep1;
-			throw new SymbolicRepresentationIncompatibleMerge($"Cannot merge representations {rep1.Name} and {rep2.Name}");
-		}
-	}
-	#endregion
-
-	#region SymbolicContext
-
-	[DebuggerDisplay("{DebuggerDisplay,nq}")]
-	public class SymbolicContext : ISymbolicContext
-	{
-		public class Inference
-		{
-			private static int inferenceCount = 0;
-			public SymbolicRepresentation Representation;
-			public readonly int InferenceNumber;
-
-			public Inference(SymbolicRepresentation representation = null)
-			{
-				Representation = representation;
-				InferenceNumber = ++inferenceCount;
-			}
-
-			public void Merge(Inference other)
-			{
-				Representation = other.Representation = SymbolicRepresentation.Merge(Representation, other.Representation);
-			}
-		}
-
-		private static int contextCount = 0;
-		private Inference inference;
-		private readonly int contextNumber;
-		public int ContextNumber => contextNumber;
-		public int? InferenceNumber => inference?.InferenceNumber;
-		public bool HasInference => inference is not null;
-		public string ContextNumberString => HasInference ? $"{contextNumber}/{inference.InferenceNumber}" : contextNumber.ToString();
-		public string RepresentationString => Representation?.Name;
-
-		private string DebuggerDisplay {
-			get {
-				string representationName = RepresentationString;
-				if (representationName is null)
-					return $"[Context {ContextNumberString}]";
-				else
-					return $"[Context {ContextNumberString} = {representationName}]";
-			}
-		}
-
-		public SymbolicContext()
-		{
-			contextNumber = ++contextCount;
-		}
-
-		public SymbolicContext(SymbolicRepresentation representation) : this()
-		{
-			inference = new(representation);
-		}
-
-		public void Merge(SymbolicContext other)
-		{
-			if (other != null && other != this)
-			{
-				Merge(other.inference);
-				other.inference = inference;
-			}
-		}
-
-		public void Merge(ref SymbolicContext other)
-		{
-			if (other is null)
-				other = this;
-			else
-				other.Merge(this);
-		}
-
-		public void Merge(Inference inference)
-		{
-			if (inference is not null)
-			{
-				if (this.inference is not null)
-					this.inference.Merge(inference);
-				this.inference = inference;
-			}
-		}
-
-		public SymbolicRepresentation Representation => inference?.Representation;
-		public void SetRepresentation(SymbolicRepresentation representation, bool force = false)
-		{
-			if (inference is null)
-				inference = new(representation);
-			else if (inference.Representation == null || force)
-			{
-				inference.Representation = representation;
-			}
-		}
-	}
-	#endregion
 
 	#region InvocationMethod/InvocationParameter
 	public class InvocationParameter
@@ -212,8 +98,133 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	}
 	#endregion
 
-	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<SymbolicContext, int>, IAstTransform
+	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<ReplaceLiteralsWithConstants.SymbolicContext, int>, IAstTransform
 	{
+		private static int instanceCounter = 0;
+		public readonly int instanceNumber;
+
+		public ReplaceLiteralsWithConstants()
+		{
+			instanceNumber = ++instanceCounter;
+#if DEBUG_VERBOSE
+			Console.WriteLine($"ReplaceLiteralsWithConstants: Instance {instanceNumber} constructed");
+#endif
+		}
+
+		#region SymbolicRepresentation
+		public class SymbolicRepresentation
+		{
+			public readonly string Name;
+			public SymbolicRepresentation(string name)
+			{
+				this.Name = name;
+			}
+
+			public static SymbolicRepresentation Merge(SymbolicRepresentation rep1, SymbolicRepresentation rep2)
+			{
+				if (rep1 == rep2)
+					return rep1;
+				if (rep1 == null)
+					return rep2;
+				if (rep2 == null)
+					return rep1;
+				throw new SymbolicRepresentationIncompatibleMerge($"Cannot merge representations {rep1.Name} and {rep2.Name}");
+			}
+		}
+		#endregion
+
+		#region SymbolicContext
+
+		[DebuggerDisplay("{DebuggerDisplay,nq}")]
+		public class SymbolicContext : ISymbolicContext
+		{
+			public class Inference
+			{
+				private static int inferenceCount = 0;
+				public SymbolicRepresentation Representation;
+				public readonly int InferenceNumber;
+
+				public Inference(SymbolicRepresentation representation = null)
+				{
+					Representation = representation;
+					InferenceNumber = ++inferenceCount;
+				}
+
+				public void Merge(Inference other)
+				{
+					Representation = other.Representation = SymbolicRepresentation.Merge(Representation, other.Representation);
+				}
+			}
+
+			private static int contextCount = 0;
+			private Inference inference;
+			private readonly int contextNumber;
+			public int ContextNumber => contextNumber;
+			public int? InferenceNumber => inference?.InferenceNumber;
+			public bool HasInference => inference is not null;
+			public string ContextNumberString => HasInference ? $"{contextNumber}/{inference.InferenceNumber}" : contextNumber.ToString();
+			public string RepresentationString => Representation?.Name;
+
+			private string DebuggerDisplay {
+				get {
+					string representationName = RepresentationString;
+					if (representationName is null)
+						return $"[Context {ContextNumberString}]";
+					else
+						return $"[Context {ContextNumberString} = {representationName}]";
+				}
+			}
+
+			public SymbolicContext()
+			{
+				contextNumber = ++contextCount;
+			}
+
+			public SymbolicContext(SymbolicRepresentation representation) : this()
+			{
+				inference = new(representation);
+			}
+
+			public void Merge(SymbolicContext other)
+			{
+				if (other != null && other != this)
+				{
+					Merge(other.inference);
+					other.inference = inference;
+				}
+			}
+
+			public void Merge(ref SymbolicContext other)
+			{
+				if (other is null)
+					other = this;
+				else
+					other.Merge(this);
+			}
+
+			public void Merge(Inference inference)
+			{
+				if (inference is not null)
+				{
+					if (this.inference is not null)
+						this.inference.Merge(inference);
+					this.inference = inference;
+				}
+			}
+
+			public SymbolicRepresentation Representation => inference?.Representation;
+			public void SetRepresentation(SymbolicRepresentation representation, bool force = false)
+			{
+				if (inference is null)
+					inference = new(representation);
+				else if (inference.Representation == null || force)
+				{
+					inference.Representation = representation;
+				}
+			}
+		}
+		#endregion
+
 		#region BitValue/BitValueExpression/Bitmask/Bitfield
 		class BitValue
 		{
@@ -473,17 +484,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
-		private static int instanceCounter = 0;
-		public readonly int instanceNumber;
-
-		public ReplaceLiteralsWithConstants()
-		{
-			instanceNumber = ++instanceCounter;
-#if DEBUG_VERBOSE
-			Console.WriteLine($"ReplaceLiteralsWithConstants: Instance {instanceNumber} constructed");
-#endif
-		}
-
 		#region Collecting Constant Declarations
 		private Bitfield layerMaskBitfield;
 		private Bitfield hitMaskBitfield;
@@ -686,7 +686,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
 			var inheritedContext = symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			symbolicContext = node.HasSymbolicContext() ? symbolicContext.Ensure() : null;
+			symbolicContext = node.HasSymbolicContext() ? symbolicContext ?? new() : null;
 			node.SaveContext(inheritedContext ?? symbolicContext);
 		}
 
@@ -791,11 +791,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 #endif
 
-		public static SymbolicContext Ensure(this SymbolicContext context)
-		{
-			return context ?? new();
-		}
-
 		public static ILVariable GetILVariable(this AstNode node)
 		{
 			if (node.Annotation<ResolveResult>() is ILVariableResolveResult rr)
@@ -804,11 +799,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return null;
 		}
 
-		public static void SaveContext(this AstNode node, SymbolicContext symbolicContext)
+		public static void SaveContext(this AstNode node, ISymbolicContext symbolicContext)
 		{
 			if (symbolicContext != null)
 			{
-				if (node.Annotation<SymbolicContext>() is not null)
+				if (node.Annotation<ISymbolicContext>() is not null)
 					throw new ArgumentException($"Node {node} has already been assigned a symbolic context");
 
 				node.AddAnnotation(symbolicContext);
