@@ -104,6 +104,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
+			public readonly TransformContext Context;
 			public readonly DeclaredMethod DeclaredMethod;
 
 			private static int contextCount = 0;
@@ -125,8 +126,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			internal SymbolicContext(DeclaredMethod declaredMethod)
+			internal SymbolicContext(TransformContext context, DeclaredMethod declaredMethod)
 			{
+				Context = context;
 				DeclaredMethod = declaredMethod;
 				contextNumber = ++contextCount;
 			}
@@ -634,7 +636,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private SymbolicContext CreateSymbolicContext()
 		{
-			return new(currentMethod);
+			return new(context, currentMethod);
 		}
 
 		private SymbolicContext Ensure(SymbolicContext symbolicContext)
@@ -642,14 +644,34 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return symbolicContext ?? CreateSymbolicContext();
 		}
 
+		public override int VisitTypeDeclaration(TypeDeclaration typeDeclaration, SymbolicContext symbolicContext)
+		{
+			var previousContext = NewContext(typeDeclaration);
+			try
+			{
+				return base.VisitTypeDeclaration(typeDeclaration, symbolicContext);
+			}
+			finally
+			{
+				context = previousContext;
+			}
+		}
+
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, SymbolicContext symbolicContext)
 		{
+			var previousContext = NewContext(methodDeclaration);
 			var previousMethod = currentMethod;
-			IMethod method = methodDeclaration.GetSymbol() as IMethod;
-			currentMethod = new(method);
-			base.VisitMethodDeclaration(methodDeclaration, symbolicContext);
-			currentMethod = previousMethod;
-			return default;
+			try
+			{
+				IMethod method = methodDeclaration.GetSymbol() as IMethod;
+				currentMethod = new(method);
+				return base.VisitMethodDeclaration(methodDeclaration, symbolicContext);
+			}
+			finally
+			{
+				currentMethod = previousMethod;
+				context = previousContext;
+			}
 		}
 
 		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, SymbolicContext symbolicContext)
@@ -819,7 +841,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						var prefix = symbolicContext?.RepresentationString?.ToLowerInvariant();
 						if (prefix is not null && variable.Name.StartsWith("num"))
 						{
-							variable.Name = symbolicContext.DeclaredMethod.AddPrefixedName(prefix);
+							variable.Name = declaredMethod.AddPrefixedName(prefix);
 						}
 
 						var identifier = node.GetChildByRole(Roles.Identifier);
@@ -854,6 +876,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 
 		TransformContext context;
+
+		private TransformContext NewContext(AstNode node)
+		{
+			if (node.GetSymbol() is IEntity entity)
+			{
+				var oldContext = context;
+				context = new(context.TypeSystem, context.DecompileRun, new SimpleTypeResolveContext(entity), context.TypeSystemAstBuilder);
+				return oldContext;
+			}
+
+			throw new ArgumentException($"{node.GetType()} has no entity attached");
+		}
 
 		void IAstTransform.Run(AstNode node, TransformContext context)
 		{
