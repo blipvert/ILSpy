@@ -125,35 +125,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public SymbolicContext(DeclaredMethod declaredMethod)
+			internal SymbolicContext(DeclaredMethod declaredMethod)
 			{
 				DeclaredMethod = declaredMethod;
 				contextNumber = ++contextCount;
 			}
 
-			public SymbolicContext(DeclaredMethod declaredMethod, SymbolicRepresentation representation) : this(declaredMethod)
-			{
-				inference = new(representation);
-			}
-
-			public void Merge(SymbolicContext other)
-			{
-				if (other != null && other != this)
-				{
-					Merge(other.inference);
-					other.inference = inference;
-				}
-			}
-
-			public void Merge(ref SymbolicContext other)
-			{
-				if (other is null)
-					other = this;
-				else
-					other.Merge(this);
-			}
-
-			public void Merge(Inference inference)
+			public SymbolicContext Merge(Inference inference)
 			{
 				if (inference is not null)
 				{
@@ -161,6 +139,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						this.inference.Merge(inference);
 					this.inference = inference;
 				}
+				return this;
 			}
 
 			public SymbolicRepresentation Representation => inference?.Representation;
@@ -592,8 +571,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				variableContextMap.Add(variable, inference = new());
 			}
-			(mergeContext ??= new(currentMethod)).Merge(inference);
-			return mergeContext;
+			return Ensure(mergeContext).Merge(inference);
 		}
 
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
@@ -614,17 +592,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 			return null;
 		}
-
 		private void SetRepresentation(ref SymbolicContext symbolicContext, string name)
 		{
 			var symbolicRepresentation = GetRepresentation(name);
 
 			if (symbolicRepresentation is not null)
 			{
-				if (symbolicContext is null)
-					symbolicContext = new SymbolicContext(currentMethod, symbolicRepresentation);
-				else
-					symbolicContext.SetRepresentation(symbolicRepresentation);
+				(symbolicContext = Ensure(symbolicContext)).SetRepresentation(symbolicRepresentation);
 			}
 		}
 
@@ -657,6 +631,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 		private DeclaredMethod currentMethod = null;
+
+		private SymbolicContext CreateSymbolicContext()
+		{
+			return new(currentMethod);
+		}
+
+		private SymbolicContext Ensure(SymbolicContext symbolicContext)
+		{
+			return symbolicContext ?? CreateSymbolicContext();
+		}
 
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, SymbolicContext symbolicContext)
 		{
@@ -753,7 +737,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
 			var inheritedContext = symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			symbolicContext = NeedsSymbolicContext(node) ? symbolicContext ?? new(currentMethod) : null;
+			symbolicContext = NeedsSymbolicContext(node) ? Ensure(symbolicContext) : null;
 			node.SaveContext(inheritedContext ?? symbolicContext);
 		}
 
