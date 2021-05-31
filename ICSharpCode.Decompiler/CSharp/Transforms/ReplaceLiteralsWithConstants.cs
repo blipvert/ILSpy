@@ -65,7 +65,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public readonly string Name;
 			public SymbolicRepresentation(string name)
 			{
-				this.Name = name;
+				Name = name;
 			}
 
 			public static SymbolicRepresentation Merge(SymbolicRepresentation rep1, SymbolicRepresentation rep2)
