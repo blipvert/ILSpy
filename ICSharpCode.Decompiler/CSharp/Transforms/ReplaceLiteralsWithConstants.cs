@@ -665,6 +665,21 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return default;
 		}
 
+		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, SymbolicContext symbolicContext)
+		{
+			currentMethod?.AddLocalName(parameterDeclaration.Name);
+			return base.VisitParameterDeclaration(parameterDeclaration, symbolicContext);
+		}
+
+		public override int VisitVariableDeclarationStatement(VariableDeclarationStatement variableDeclarationStatement, SymbolicContext symbolicContext)
+		{
+			foreach (var variableInitializer in variableDeclarationStatement.Variables)
+			{
+				currentMethod?.AddLocalName(variableInitializer.Name);
+			}
+			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, symbolicContext);
+		}
+
 		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, SymbolicContext symbolicContext)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
