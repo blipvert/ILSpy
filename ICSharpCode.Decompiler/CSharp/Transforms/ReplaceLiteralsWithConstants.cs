@@ -606,13 +606,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public class DeclaredMethod
 		{
-			public readonly IMethod Method;
 			private HashSet<string> localNames = new();
-
-			public DeclaredMethod(IMethod method)
-			{
-				Method = method;
-			}
 
 			public bool AddLocalName(string name)
 			{
@@ -663,8 +657,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			var previousMethod = currentMethod;
 			try
 			{
-				IMethod method = methodDeclaration.GetSymbol() as IMethod;
-				currentMethod = new(method);
+				currentMethod = new();
 				return base.VisitMethodDeclaration(methodDeclaration, symbolicContext);
 			}
 			finally
