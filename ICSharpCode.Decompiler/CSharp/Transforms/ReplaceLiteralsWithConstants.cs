@@ -104,6 +104,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
+			public readonly DeclaredMethod DeclaredMethod;
+
 			private static int contextCount = 0;
 			private Inference inference;
 			private readonly int contextNumber;
@@ -123,12 +125,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public SymbolicContext()
+			public SymbolicContext(DeclaredMethod declaredMethod)
 			{
+				DeclaredMethod = declaredMethod;
 				contextNumber = ++contextCount;
 			}
 
-			public SymbolicContext(SymbolicRepresentation representation) : this()
+			public SymbolicContext(DeclaredMethod declaredMethod, SymbolicRepresentation representation) : this(declaredMethod)
 			{
 				inference = new(representation);
 			}
@@ -589,7 +592,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				variableContextMap.Add(variable, inference = new());
 			}
-			(mergeContext ??= new()).Merge(inference);
+			(mergeContext ??= new(currentMethod)).Merge(inference);
 			return mergeContext;
 		}
 
@@ -619,7 +622,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			if (symbolicRepresentation is not null)
 			{
 				if (symbolicContext is null)
-					symbolicContext = new SymbolicContext(symbolicRepresentation);
+					symbolicContext = new SymbolicContext(currentMethod, symbolicRepresentation);
 				else
 					symbolicContext.SetRepresentation(symbolicRepresentation);
 			}
@@ -750,7 +753,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
 			var inheritedContext = symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
-			symbolicContext = NeedsSymbolicContext(node) ? symbolicContext ?? new() : null;
+			symbolicContext = NeedsSymbolicContext(node) ? symbolicContext ?? new(currentMethod) : null;
 			node.SaveContext(inheritedContext ?? symbolicContext);
 		}
 
