@@ -625,6 +625,46 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
+		public class DeclaredMethod
+		{
+			public readonly IMethod Method;
+			private HashSet<string> localNames = new();
+
+			public DeclaredMethod(IMethod method)
+			{
+				Method = method;
+			}
+
+			public bool AddLocalName(string name)
+			{
+				return localNames.Add(name);
+			}
+
+			public string AddPrefixedName(string prefix)
+			{
+				int unique = 1;
+				string name;
+
+				while (!AddLocalName(name = prefix + unique.ToString()))
+				{
+					++unique;
+				}
+				return name;
+			}
+		}
+
+		private DeclaredMethod currentMethod = null;
+
+		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, SymbolicContext symbolicContext)
+		{
+			var previousMethod = currentMethod;
+			IMethod method = methodDeclaration.GetSymbol() as IMethod;
+			currentMethod = new(method);
+			base.VisitMethodDeclaration(methodDeclaration, symbolicContext);
+			currentMethod = previousMethod;
+			return default;
+		}
+
 		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, SymbolicContext symbolicContext)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
