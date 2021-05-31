@@ -821,6 +821,45 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		}
 
+		private void RenameSymbolicVariables(AstNode root)
+		{
+			void RenameIdentifier(AstNode node)
+			{
+				var variable = node.GetILVariable();
+				if (variable is not null)
+				{
+					var symbolicContext = node.GetSymbolicContext() as SymbolicContext;
+					var declaredMethod = symbolicContext.DeclaredMethod;
+					if (declaredMethod is not null)
+					{
+						var prefix = symbolicContext?.RepresentationString?.ToLowerInvariant();
+						if (prefix is not null && variable.Name.StartsWith("num"))
+						{
+							variable.Name = symbolicContext.DeclaredMethod.AddPrefixedName(prefix);
+						}
+
+						var identifier = node.GetChildByRole(Roles.Identifier);
+
+						if (identifier.Name != variable.Name)
+							identifier.Name = variable.Name;
+					}
+				}
+			}
+
+			foreach (var variableDeclarationStatement in root.DescendantNodesAndSelf().OfType<VariableDeclarationStatement>())
+			{
+				foreach (var variableInitializer in variableDeclarationStatement.Variables)
+				{
+					RenameIdentifier(variableInitializer);
+				}
+			}
+
+			foreach (var identifierExpression in root.DescendantNodesAndSelf().OfType<IdentifierExpression>())
+			{
+				RenameIdentifier(identifierExpression);
+			}
+		}
+
 		private void CleanupSymbolicAnnotations(AstNode root)
 		{
 			foreach (var node in root.DescendantNodesAndSelf())
@@ -848,6 +887,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #if BITVALUE_STUFF
 				ReplacePrimitiveExpressions(node);
 #endif
+				RenameSymbolicVariables(node);
 #if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
 				CleanupSymbolicAnnotations(node);
 #endif
