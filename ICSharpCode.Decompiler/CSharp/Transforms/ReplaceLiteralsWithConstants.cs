@@ -105,7 +105,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 
 			public readonly TransformContext Context;
-			public readonly DeclaredMethod DeclaredMethod;
+			public readonly MethodScope DeclaredMethod;
 
 			private static int contextCount = 0;
 			private Inference inference;
@@ -126,7 +126,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			internal SymbolicContext(TransformContext context, DeclaredMethod declaredMethod)
+			internal SymbolicContext(TransformContext context, MethodScope declaredMethod)
 			{
 				Context = context;
 				DeclaredMethod = declaredMethod;
@@ -604,7 +604,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		public class DeclaredMethod
+		public class MethodScope
 		{
 			private HashSet<string> localNames = new();
 
@@ -626,11 +626,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		private DeclaredMethod currentMethod = null;
+		private MethodScope currentScope = null;
 
 		private SymbolicContext CreateSymbolicContext()
 		{
-			return new(context, currentMethod);
+			return new(context, currentScope);
 		}
 
 		private SymbolicContext Ensure(SymbolicContext symbolicContext)
@@ -654,22 +654,22 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, SymbolicContext symbolicContext)
 		{
 			var previousContext = NewContext(methodDeclaration);
-			var previousMethod = currentMethod;
+			var previousScope = currentScope;
 			try
 			{
-				currentMethod = new();
+				currentScope = new();
 				return base.VisitMethodDeclaration(methodDeclaration, symbolicContext);
 			}
 			finally
 			{
-				currentMethod = previousMethod;
+				currentScope = previousScope;
 				context = previousContext;
 			}
 		}
 
 		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, SymbolicContext symbolicContext)
 		{
-			currentMethod?.AddLocalName(parameterDeclaration.Name);
+			currentScope?.AddLocalName(parameterDeclaration.Name);
 			return base.VisitParameterDeclaration(parameterDeclaration, symbolicContext);
 		}
 
@@ -677,7 +677,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			foreach (var variableInitializer in variableDeclarationStatement.Variables)
 			{
-				currentMethod?.AddLocalName(variableInitializer.Name);
+				currentScope?.AddLocalName(variableInitializer.Name);
 			}
 			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, symbolicContext);
 		}
