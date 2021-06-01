@@ -640,7 +640,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitTypeDeclaration(TypeDeclaration typeDeclaration, SymbolicContext symbolicContext)
 		{
-			var previousContext = NewContext(typeDeclaration);
+			var previousContext = transformContext.Retarget(typeDeclaration);
 			try
 			{
 				return base.VisitTypeDeclaration(typeDeclaration, symbolicContext);
@@ -653,7 +653,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, SymbolicContext symbolicContext)
 		{
-			var previousContext = NewContext(methodDeclaration);
+			var previousContext = transformContext.Retarget(methodDeclaration);
 			var previousScope = currentScope;
 			try
 			{
@@ -867,20 +867,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-
 		TransformContext transformContext;
-
-		private TransformContext NewContext(AstNode node)
-		{
-			if (node.GetSymbol() is IEntity entity)
-			{
-				var oldContext = transformContext;
-				transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun, new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
-				return oldContext;
-			}
-
-			throw new ArgumentException($"{node.GetType()} has no entity attached");
-		}
 
 		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
@@ -958,6 +945,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return operatorType == AssignmentOperatorType.BitwiseAnd
 				|| operatorType == AssignmentOperatorType.BitwiseOr
 				|| operatorType == AssignmentOperatorType.ExclusiveOr;
+		}
+
+		public static TransformContext Retarget(this TransformContext transformContext, IEntity entity)
+		{
+			return entity is null ? transformContext :
+				new(transformContext.TypeSystem, transformContext.DecompileRun, new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
+		}
+
+		public static TransformContext Retarget(this TransformContext transformContext, AstNode node)
+		{
+			return transformContext.Retarget(node.GetSymbol() as IEntity);
 		}
 
 		public static bool IsIntegerConstant(this IVariable variable)
