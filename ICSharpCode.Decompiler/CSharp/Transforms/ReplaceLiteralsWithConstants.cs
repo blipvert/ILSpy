@@ -579,7 +579,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
 		private readonly SymbolicRepresentation hitMaskSymbolicRepresentation = new("HitMask");
 
-		private SymbolicRepresentation GetRepresentation(string name)
+		private SymbolicRepresentation InferRepresentation(string name)
 		{
 			if (name is not null)
 			{
@@ -596,7 +596,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		private void SetRepresentation(ref SymbolicContext symbolicContext, string name)
 		{
-			var symbolicRepresentation = GetRepresentation(name);
+			var symbolicRepresentation = InferRepresentation(name);
 
 			if (symbolicRepresentation is not null)
 			{
