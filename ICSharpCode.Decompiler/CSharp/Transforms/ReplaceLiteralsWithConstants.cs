@@ -63,9 +63,24 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public class SymbolicRepresentation
 		{
 			public readonly string Name;
-			public SymbolicRepresentation(string name)
+			public readonly string Prefix;
+			public readonly object Meaning;
+			private readonly string paramName1, paramName2;
+
+			public SymbolicRepresentation(string name, object meaning)
 			{
 				Name = name;
+				Prefix = name.ToLowerInvariant();
+				paramName1 = Prefix;
+				paramName2 = "_" + paramName1;
+				Meaning = meaning;
+			}
+
+			public bool MatchParameterName(string name)
+			{
+				return
+					name.Equals(paramName1, StringComparison.OrdinalIgnoreCase) ||
+					name.Equals(paramName2, StringComparison.OrdinalIgnoreCase);
 			}
 
 			public static SymbolicRepresentation Merge(SymbolicRepresentation rep1, SymbolicRepresentation rep2)
@@ -417,9 +432,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#endregion
 
 		#region Collecting Constant Declarations
-		private Bitfield layerMaskBitfield;
-		private Bitfield hitMaskBitfield;
 		private Dictionary<IField, NamedBitmask> masterBitfieldDirectory = new();
+		private List<SymbolicRepresentation> symbolicRepresentationList = new();
 
 		private Bitfield CreateSymbolicBitField(string definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
 		{
@@ -443,11 +457,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return null;
 		}
 
+		private void AddSymbolicBitfield(string name, Bitfield bitfield)
+		{
+			if (bitfield is not null)
+				symbolicRepresentationList.Add(new(name, bitfield));
+		}
 
 		private void PopulateSymbolicBitfields()
 		{
-			layerMaskBitfield = CreateSymbolicBitField("Constants", "cLayerMask", "cLayer");
-			hitMaskBitfield = CreateSymbolicBitField("Voxel", "HM_", bitLength: 12);
+			AddSymbolicBitfield("LayerMask", CreateSymbolicBitField("Constants", "cLayerMask", "cLayer"));
+			AddSymbolicBitfield("HitMask", CreateSymbolicBitField("Voxel", "HM_", bitLength: 12));
 		}
 
 		#endregion
@@ -576,20 +595,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return Ensure(mergeContext).Merge(inference);
 		}
 
-		private readonly SymbolicRepresentation layerMaskSymbolicRepresentation = new("LayerMask");
-		private readonly SymbolicRepresentation hitMaskSymbolicRepresentation = new("HitMask");
-
 		private SymbolicRepresentation InferRepresentation(string name)
 		{
 			if (name is not null)
 			{
-				if (name.Equals("layerMask", StringComparison.OrdinalIgnoreCase) || name.Equals("_layerMask", StringComparison.OrdinalIgnoreCase))
+				foreach (var symbolicRepresentation in symbolicRepresentationList)
 				{
-					return layerMaskSymbolicRepresentation;
-				}
-				if (name.Equals("hitMask", StringComparison.OrdinalIgnoreCase) || name.Equals("_hitMask", StringComparison.OrdinalIgnoreCase))
-				{
-					return hitMaskSymbolicRepresentation;
+					if (symbolicRepresentation.MatchParameterName(name))
+						return symbolicRepresentation;
 				}
 			}
 			return null;
@@ -793,18 +806,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		private Bitfield GetSymbolicBitfield(SymbolicRepresentation symbolicRepresentation)
-		{
-			switch (symbolicRepresentation?.Name)
-			{
-				case "LayerMask":
-					return layerMaskBitfield;
-				case "HitMask":
-					return hitMaskBitfield;
-			}
-			return null;
-		}
-
 		private void ReplacePrimitiveExpressions(AstNode node)
 		{
 			foreach (var primitiveExpression in node.DescendantsAndSelf.OfType<PrimitiveExpression>())
@@ -812,12 +813,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
 				if (symbolicContext is not null)
 				{
-					var symbolicBitfield = GetSymbolicBitfield(symbolicContext.Representation);
+					var symbolicBitfield = symbolicContext.Representation?.Meaning as Bitfield;
 					if (symbolicBitfield is not null)
 						ReplacePrimitiveWithSymbolic(primitiveExpression, symbolicBitfield);
 				}
 			}
-
 		}
 
 		private void RenameSymbolicVariables(AstNode root)
