@@ -423,7 +423,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private Bitfield CreateSymbolicBitField(string definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
 		{
-			var type = context.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType).SingleOrDefault();
+			var type = transformContext.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType).SingleOrDefault();
 			if (type is not null)
 			{
 				Bitfield bitfield = new(bitLength);
@@ -630,7 +630,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private SymbolicContext CreateSymbolicContext()
 		{
-			return new(context, currentScope);
+			return new(transformContext, currentScope);
 		}
 
 		private SymbolicContext Ensure(SymbolicContext symbolicContext)
@@ -647,7 +647,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 			finally
 			{
-				context = previousContext;
+				transformContext = previousContext;
 			}
 		}
 
@@ -663,7 +663,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			finally
 			{
 				currentScope = previousScope;
-				context = previousContext;
+				transformContext = previousContext;
 			}
 		}
 
@@ -773,7 +773,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
 		{
-			primitiveExpression.ReplaceWith(bitValue.Express(context, primitiveExpression.GetEnclosingType()).CopyAnnotationsFrom(primitiveExpression));
+			primitiveExpression.ReplaceWith(bitValue.Express(transformContext, primitiveExpression.GetEnclosingType()).CopyAnnotationsFrom(primitiveExpression));
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, Bitfield bitfield)
@@ -868,23 +868,23 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 
-		TransformContext context;
+		TransformContext transformContext;
 
 		private TransformContext NewContext(AstNode node)
 		{
 			if (node.GetSymbol() is IEntity entity)
 			{
-				var oldContext = context;
-				context = new(context.TypeSystem, context.DecompileRun, new SimpleTypeResolveContext(entity), context.TypeSystemAstBuilder);
+				var oldContext = transformContext;
+				transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun, new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
 				return oldContext;
 			}
 
 			throw new ArgumentException($"{node.GetType()} has no entity attached");
 		}
 
-		void IAstTransform.Run(AstNode node, TransformContext context)
+		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
-			this.context = context;
+			this.transformContext = transformContext;
 			try
 			{
 #if BITVALUE_STUFF
@@ -905,7 +905,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 			finally
 			{
-				this.context = null;
+				this.transformContext = null;
 			}
 		}
 	}
