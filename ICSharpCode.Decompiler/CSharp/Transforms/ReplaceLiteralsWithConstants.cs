@@ -950,6 +950,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return transformContext.Retarget(node.GetSymbol() as IEntity);
 		}
 
+		public static ITypeDefinition GetDefinedType(this TransformContext transformContext, string typeName)
+		{
+			return transformContext.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == typeName).SingleOrDefault();
+		}
+
 		public static bool IsIntegerConstant(this IVariable variable)
 		{
 			return variable is not null && variable.IsConst && variable.Type.IsKnownType(KnownTypeCode.Int32);
