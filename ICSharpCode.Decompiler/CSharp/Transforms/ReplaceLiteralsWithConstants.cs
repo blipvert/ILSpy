@@ -107,11 +107,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				public SymbolicRepresentation Representation;
 				public readonly int InferenceNumber;
 
-				public Inference(SymbolicRepresentation representation = null)
+				public Inference(SymbolicRepresentation representation)
 				{
 					Representation = representation;
 					InferenceNumber = ++inferenceCount;
 				}
+
+				public Inference() : this(null) { }
 
 				public void Merge(Inference other)
 				{
@@ -581,18 +583,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #endif
 		#endregion
 
-		private Dictionary<ILVariable, SymbolicContext.Inference> variableContextMap = new();
+		private AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
 
-		private SymbolicContext GetVariableContext(ILVariable variable, SymbolicContext mergeContext = null)
+		private SymbolicContext MergeVariableInference(ILVariable variable, SymbolicContext symbolicContext = null)
 		{
-			if (variable is null)
-				return mergeContext;
-
-			if (!variableContextMap.TryGetValue(variable, out var inference))
-			{
-				variableContextMap.Add(variable, inference = new());
-			}
-			return Ensure(mergeContext).Merge(inference);
+			return variable is null ? symbolicContext : Ensure(symbolicContext).Merge(variableInferenceMap[variable]);
 		}
 
 		private SymbolicRepresentation InferRepresentation(string name)
@@ -745,7 +740,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							var invocationParameter = invocationMethod.GetParameter(argumentIndex++, argMap);
 							if (invocationParameter is not null)
 							{
-								symbolicContext = GetVariableContext(invocationParameter.Variable, symbolicContext);
+								symbolicContext = MergeVariableInference(invocationParameter.Variable, symbolicContext);
 								SetRepresentation(ref symbolicContext, invocationParameter.Parameter.Name);
 							}
 						}
@@ -764,7 +759,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
 		{
-			var inheritedContext = symbolicContext = GetVariableContext(node.GetILVariable(), symbolicContext);
+			var inheritedContext = symbolicContext = MergeVariableInference(node.GetILVariable(), symbolicContext);
 			symbolicContext = NeedsSymbolicContext(node) ? Ensure(symbolicContext) : null;
 			node.SaveContext(inheritedContext ?? symbolicContext);
 		}
