@@ -433,46 +433,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
-		#region Collecting Constant Declarations
-		private Dictionary<IField, NamedBitmask> masterBitfieldDirectory = new();
-		private List<SymbolicRepresentation> symbolicRepresentationList = new();
-
-		private Bitfield CreateSymbolicBitField(string definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
-		{
-			var type = transformContext.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType).SingleOrDefault();
-			if (type is not null)
-			{
-				Bitfield bitfield = new(bitLength);
-				foreach (var field in type.Fields)
-				{
-					if (field.IsIntegerConstant())
-					{
-						if (field.Name.StartsWith(maskPrefix))
-							masterBitfieldDirectory.Add(field, bitfield.AddMask(field));
-						else if ((bitPositionPrefix is not null) && field.Name.StartsWith(bitPositionPrefix))
-							bitfield.SetPosition(field);
-					}
-				}
-				if (!bitfield.Empty)
-					return bitfield;
-			}
-			return null;
-		}
-
-		private void AddSymbolicBitfield(string name, Bitfield bitfield)
-		{
-			if (bitfield is not null)
-				symbolicRepresentationList.Add(new(name, bitfield));
-		}
-
-		private void PopulateSymbolicBitfields()
-		{
-			AddSymbolicBitfield("LayerMask", CreateSymbolicBitField("Constants", "cLayerMask", "cLayer"));
-			AddSymbolicBitfield("HitMask", CreateSymbolicBitField("Voxel", "HM_", bitLength: 12));
-		}
-
-		#endregion
-
 		#region InvocationMethod/InvocationParameter
 		public class InvocationParameter
 		{
@@ -534,9 +494,48 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
-		#region Identifying invocation variables
+		private Dictionary<IField, NamedBitmask> masterBitfieldDirectory = new();
+		private List<SymbolicRepresentation> symbolicRepresentationList = new();
 		public readonly MethodAutoMap methodMap = new();
+		private AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
 
+		#region Collecting Constant Declarations
+		private void PopulateSymbolicBitfields()
+		{
+			Bitfield CreateBitfield(string definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
+			{
+				var type = transformContext.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType).SingleOrDefault();
+				if (type is not null)
+				{
+					Bitfield bitfield = new(bitLength);
+					foreach (var field in type.Fields)
+					{
+						if (field.IsIntegerConstant())
+						{
+							if (field.Name.StartsWith(maskPrefix))
+								masterBitfieldDirectory.Add(field, bitfield.AddMask(field));
+							else if ((bitPositionPrefix is not null) && field.Name.StartsWith(bitPositionPrefix))
+								bitfield.SetPosition(field);
+						}
+					}
+					if (!bitfield.Empty)
+						return bitfield;
+				}
+				return null;
+			}
+
+			void AddBitfield(string name, Bitfield bitfield)
+			{
+				if (bitfield is not null)
+					symbolicRepresentationList.Add(new(name, bitfield));
+			}
+
+			AddBitfield("LayerMask", CreateBitfield("Constants", "cLayerMask", "cLayer"));
+			AddBitfield("HitMask", CreateBitfield("Voxel", "HM_", bitLength: 12));
+		}
+
+		#endregion
+		#region Identifying invocation variables
 		private void BuildMethodMap(AstNode rootNode)
 		{
 			foreach (var methodDeclaration in rootNode.DescendantsAndSelf.OfType<MethodDeclaration>())
@@ -555,7 +554,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 		}
-
+		#endregion
+		#region Annotating invocations
 #if DEBUG_ANNOTATE_INVOCATIONS
 		private void AnnotateInvocations(AstNode rootNode)
 		{
@@ -582,9 +582,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 #endif
 		#endregion
-
-		private AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
-
 		private SymbolicContext MergeVariableInference(ILVariable variable, SymbolicContext symbolicContext = null)
 		{
 			return variable is null ? symbolicContext : Ensure(symbolicContext).Merge(variableInferenceMap[variable]);
