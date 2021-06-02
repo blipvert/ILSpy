@@ -494,7 +494,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
-		private Dictionary<IField, NamedBitmask> masterBitfieldDirectory = new();
+		private Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
 		private List<SymbolicRepresentation> symbolicRepresentationList = new();
 		public readonly MethodAutoMap methodMap = new();
 		private AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
@@ -513,7 +513,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						if (field.IsIntegerConstant())
 						{
 							if (field.Name.StartsWith(maskPrefix))
-								masterBitfieldDirectory.Add(field, bitfield.AddMask(field));
+								namedBitmaskMap.Add(field, bitfield.AddMask(field));
 							else if ((bitPositionPrefix is not null) && field.Name.StartsWith(bitPositionPrefix))
 								bitfield.SetPosition(field);
 						}
@@ -690,7 +690,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, SymbolicContext symbolicContext)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
-			if (masterBitfieldDirectory.TryGetValue(field, out var bitmask))
+			if (namedBitmaskMap.TryGetValue(field, out var bitmask))
 			{
 				ModifyFieldDeclaration(fieldDeclaration, bitmask.Expansion);
 			}
