@@ -493,67 +493,90 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
-		private Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
-		private List<SymbolicRepresentation> symbolicRepresentationList = new();
-		public readonly MethodAutoMap methodMap = new();
-		private AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
-
-		#region Collecting Constant Declarations
-		private void PopulateSymbolicBitfields()
+		class CodeAnalysis
 		{
-			Bitfield CreateBitfield(string definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
+			public readonly Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
+			public readonly List<SymbolicRepresentation> symbolicRepresentationList = new();
+			public readonly MethodAutoMap methodMap = new();
+			public readonly AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
+
+			public bool AddBitfield(string name, ITypeDefinition definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
 			{
-				var type = transformContext.TypeSystem.MainModule.TopLevelTypeDefinitions.Where(t => t.Name == definingType).SingleOrDefault();
-				if (type is not null)
+				if (definingType is null)
+					return false;
+
+				Bitfield bitfield = new(bitLength);
+				foreach (var field in definingType.Fields)
 				{
-					Bitfield bitfield = new(bitLength);
-					foreach (var field in type.Fields)
+					if (field.IsIntegerConstant())
 					{
-						if (field.IsIntegerConstant())
-						{
-							if (field.Name.StartsWith(maskPrefix))
-								namedBitmaskMap.Add(field, bitfield.AddMask(field));
-							else if ((bitPositionPrefix is not null) && field.Name.StartsWith(bitPositionPrefix))
-								bitfield.SetPosition(field);
-						}
+						if (field.Name.StartsWith(maskPrefix))
+							namedBitmaskMap.Add(field, bitfield.AddMask(field));
+						else if ((bitPositionPrefix is not null) && field.Name.StartsWith(bitPositionPrefix))
+							bitfield.SetPosition(field);
 					}
-					if (!bitfield.Empty)
-						return bitfield;
 				}
-				return null;
+				if (bitfield.Empty)
+					return false;
+
+				symbolicRepresentationList.Add(new(name, bitfield));
+				return true;
 			}
 
-			void AddBitfield(string name, Bitfield bitfield)
+			public CodeAnalysis(TransformContext transformContext, AstNode rootNode)
 			{
-				if (bitfield is not null)
-					symbolicRepresentationList.Add(new(name, bitfield));
+				BuildMethodMap(rootNode);
+				AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
+				AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
 			}
 
-			AddBitfield("LayerMask", CreateBitfield("Constants", "cLayerMask", "cLayer"));
-			AddBitfield("HitMask", CreateBitfield("Voxel", "HM_", bitLength: 12));
-		}
-
-		#endregion
-		#region Identifying invocation variables
-		private void BuildMethodMap(AstNode rootNode)
-		{
-			foreach (var methodDeclaration in rootNode.DescendantsAndSelf.OfType<MethodDeclaration>())
+			private void BuildMethodMap(AstNode rootNode)
 			{
-				if (methodDeclaration.GetSymbol() is IMethod method)
+				foreach (var methodDeclaration in rootNode.DescendantsAndSelf.OfType<MethodDeclaration>())
 				{
-					var invocationMethod = methodMap[method];
-					foreach (var (index, parameterDeclaration) in methodDeclaration.Parameters.WithIndex())
+					if (methodDeclaration.GetSymbol() is IMethod method)
 					{
-						var invocationParameter = invocationMethod.parameters[index];
-						invocationParameter.Variable = parameterDeclaration.GetILVariable();
+						var invocationMethod = methodMap[method];
+						foreach (var (index, parameterDeclaration) in methodDeclaration.Parameters.WithIndex())
+						{
+							var invocationParameter = invocationMethod.parameters[index];
+							invocationParameter.Variable = parameterDeclaration.GetILVariable();
 #if DEBUG_ANNOTATE_INVOCATIONS
 						parameterDeclaration.AddAnnotation(invocationParameter);
 #endif
+						}
 					}
 				}
 			}
 		}
-		#endregion
+
+		private SymbolicContext MergeVariableInference(ILVariable variable, SymbolicContext symbolicContext = null)
+		{
+			return variable is null ? symbolicContext : Ensure(symbolicContext).Merge(codeAnalysis.variableInferenceMap[variable]);
+		}
+
+		private SymbolicRepresentation InferRepresentation(string name)
+		{
+			if (name is not null)
+			{
+				foreach (var symbolicRepresentation in codeAnalysis.symbolicRepresentationList)
+				{
+					if (symbolicRepresentation.MatchParameterName(name))
+						return symbolicRepresentation;
+				}
+			}
+			return null;
+		}
+		private void SetRepresentation(ref SymbolicContext symbolicContext, string name)
+		{
+			var symbolicRepresentation = InferRepresentation(name);
+
+			if (symbolicRepresentation is not null)
+			{
+				(symbolicContext = Ensure(symbolicContext)).SetRepresentation(symbolicRepresentation);
+			}
+		}
+
 		#region Annotating invocations
 #if DEBUG_ANNOTATE_INVOCATIONS
 		private void AnnotateInvocations(AstNode rootNode)
@@ -581,32 +604,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 #endif
 		#endregion
-		private SymbolicContext MergeVariableInference(ILVariable variable, SymbolicContext symbolicContext = null)
-		{
-			return variable is null ? symbolicContext : Ensure(symbolicContext).Merge(variableInferenceMap[variable]);
-		}
-
-		private SymbolicRepresentation InferRepresentation(string name)
-		{
-			if (name is not null)
-			{
-				foreach (var symbolicRepresentation in symbolicRepresentationList)
-				{
-					if (symbolicRepresentation.MatchParameterName(name))
-						return symbolicRepresentation;
-				}
-			}
-			return null;
-		}
-		private void SetRepresentation(ref SymbolicContext symbolicContext, string name)
-		{
-			var symbolicRepresentation = InferRepresentation(name);
-
-			if (symbolicRepresentation is not null)
-			{
-				(symbolicContext = Ensure(symbolicContext)).SetRepresentation(symbolicRepresentation);
-			}
-		}
 
 		public class MethodScope
 		{
@@ -689,7 +686,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, SymbolicContext symbolicContext)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
-			if (namedBitmaskMap.TryGetValue(field, out var bitmask))
+			if (codeAnalysis.namedBitmaskMap.TryGetValue(field, out var bitmask))
 			{
 				ModifyFieldDeclaration(fieldDeclaration, bitmask.Expansion);
 			}
@@ -720,7 +717,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			if (invocationExpression.GetSymbol() is IMethod method)
 			{
-				var invocationMethod = methodMap[method];
+				var invocationMethod = codeAnalysis.methodMap[method];
 				var rr = invocationExpression.Annotation<CSharpInvocationResolveResult>();
 				if (rr != null)
 				{
@@ -855,14 +852,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 		TransformContext transformContext;
+		CodeAnalysis codeAnalysis;
 
 		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
 			this.transformContext = transformContext;
+			codeAnalysis = new(transformContext, node);
 			try
 			{
-				PopulateSymbolicBitfields();
-				BuildMethodMap(node);
 #if DEBUG_ANNOTATE_INVOCATIONS
 				AnnotateInvocations(node);
 #endif
