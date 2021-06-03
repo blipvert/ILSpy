@@ -705,10 +705,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitConditionalExpression(ConditionalExpression conditionalExpression, SymbolicContext symbolicContext)
 		{
-			UpdateSymbolicContextForNode(conditionalExpression, ref symbolicContext);
-			conditionalExpression.Condition.AcceptVisitor(this, null);
-			conditionalExpression.TrueExpression.AcceptVisitor(this, symbolicContext);
-			conditionalExpression.FalseExpression.AcceptVisitor(this, symbolicContext);
+			VisitAstNode(conditionalExpression.Condition, null);
+			VisitAstNode(conditionalExpression.TrueExpression, symbolicContext);
+			VisitAstNode(conditionalExpression.FalseExpression, symbolicContext);
 			return default;
 		}
 
@@ -719,7 +718,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitInvocationExpression(InvocationExpression invocationExpression, SymbolicContext symbolicContext)
 		{
-			UpdateSymbolicContextForNode(invocationExpression, ref symbolicContext);
 			if (invocationExpression.GetSymbol() is IMethod method)
 			{
 				var invocationMethod = methodMap[method];
@@ -740,24 +738,20 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 								SetRepresentation(ref symbolicContext, invocationParameter.Parameter.Name);
 							}
 						}
-						child.AcceptVisitor(this, symbolicContext);
+						VisitAstNode(child, symbolicContext);
 					}
 				}
 			}
 			return default;
 		}
 
-		protected override int VisitChildren(AstNode node, SymbolicContext symbolicContext)
-		{
-			UpdateSymbolicContextForNode(node, ref symbolicContext);
-			return base.VisitChildren(node, symbolicContext);
-		}
-
-		protected void UpdateSymbolicContextForNode(AstNode node, ref SymbolicContext symbolicContext)
+		protected override int VisitAstNode(AstNode node, SymbolicContext symbolicContext)
 		{
 			var inheritedContext = symbolicContext = MergeVariableInference(node.GetILVariable(), symbolicContext);
 			symbolicContext = NeedsSymbolicContext(node) ? Ensure(symbolicContext) : null;
 			node.SaveContext(inheritedContext ?? symbolicContext);
+
+			return base.VisitAstNode(node, symbolicContext);
 		}
 
 		private static bool NeedsSymbolicContext(AstNode node)
@@ -772,7 +766,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				node is CastExpression ||
 				node is IdentifierExpression ||
 				node is NamedArgumentExpression ||
-				node is ParenthesizedExpression;
+				node is ParenthesizedExpression ||
+				node is PrimitiveExpression ||
+				node is Identifier;
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
