@@ -45,7 +45,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract ILVariable Variable { get; }
 	}
 
-	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<ReplaceLiteralsWithConstants.SymbolicContext, int>, IAstTransform
+	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<ReplaceLiteralsWithConstants.VisitorAnalysis, int>, IAstTransform
 	{
 		private static int instanceCounter = 0;
 		public readonly int instanceNumber;
@@ -56,6 +56,11 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #if DEBUG_VERBOSE
 			Console.WriteLine($"ReplaceLiteralsWithConstants: Instance {instanceNumber} constructed");
 #endif
+		}
+
+		public struct VisitorAnalysis
+		{
+			internal SymbolicContext symbolicContext;
 		}
 
 		#region SymbolicRepresentation
@@ -637,12 +642,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return symbolicContext ?? CreateSymbolicContext();
 		}
 
-		public override int VisitTypeDeclaration(TypeDeclaration typeDeclaration, SymbolicContext symbolicContext)
+		public override int VisitTypeDeclaration(TypeDeclaration typeDeclaration, VisitorAnalysis visitorAnalysis)
 		{
 			var previousContext = transformContext.Retarget(typeDeclaration);
 			try
 			{
-				return base.VisitTypeDeclaration(typeDeclaration, symbolicContext);
+				return base.VisitTypeDeclaration(typeDeclaration, visitorAnalysis);
 			}
 			finally
 			{
@@ -650,14 +655,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, SymbolicContext symbolicContext)
+		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, VisitorAnalysis visitorAnalysis)
 		{
 			var previousContext = transformContext.Retarget(methodDeclaration);
 			var previousScope = currentScope;
 			try
 			{
 				currentScope = new();
-				return base.VisitMethodDeclaration(methodDeclaration, symbolicContext);
+				return base.VisitMethodDeclaration(methodDeclaration, visitorAnalysis);
 			}
 			finally
 			{
@@ -666,22 +671,22 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, SymbolicContext symbolicContext)
+		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, VisitorAnalysis visitorAnalysis)
 		{
 			currentScope?.AddLocalName(parameterDeclaration.Name);
-			return base.VisitParameterDeclaration(parameterDeclaration, symbolicContext);
+			return base.VisitParameterDeclaration(parameterDeclaration, visitorAnalysis);
 		}
 
-		public override int VisitVariableDeclarationStatement(VariableDeclarationStatement variableDeclarationStatement, SymbolicContext symbolicContext)
+		public override int VisitVariableDeclarationStatement(VariableDeclarationStatement variableDeclarationStatement, VisitorAnalysis visitorAnalysis)
 		{
 			foreach (var variableInitializer in variableDeclarationStatement.Variables)
 			{
 				currentScope?.AddLocalName(variableInitializer.Name);
 			}
-			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, symbolicContext);
+			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, visitorAnalysis);
 		}
 
-		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, SymbolicContext symbolicContext)
+		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, VisitorAnalysis visitorAnalysis)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
 			if (codeAnalysis.namedBitmaskMap.TryGetValue(field, out var bitmask))
@@ -689,29 +694,30 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				ModifyFieldDeclaration(fieldDeclaration, bitmask.Expansion);
 			}
 
-			return base.VisitFieldDeclaration(fieldDeclaration, symbolicContext);
+			return base.VisitFieldDeclaration(fieldDeclaration, visitorAnalysis);
 		}
 
-		public override int VisitIdentifier(Identifier identifier, SymbolicContext symbolicContext)
+		public override int VisitIdentifier(Identifier identifier, VisitorAnalysis visitorAnalysis)
 		{
-			SetRepresentation(ref symbolicContext, identifier.Name);
-			return base.VisitIdentifier(identifier, symbolicContext);
+			SetRepresentation(ref visitorAnalysis.symbolicContext, identifier.Name);
+			return base.VisitIdentifier(identifier, visitorAnalysis);
 		}
 
-		public override int VisitConditionalExpression(ConditionalExpression conditionalExpression, SymbolicContext symbolicContext)
+		public override int VisitConditionalExpression(ConditionalExpression conditionalExpression, VisitorAnalysis visitorAnalysis)
 		{
-			VisitAstNode(conditionalExpression.Condition, null);
-			VisitAstNode(conditionalExpression.TrueExpression, symbolicContext);
-			VisitAstNode(conditionalExpression.FalseExpression, symbolicContext);
+			VisitAstNode(conditionalExpression.TrueExpression, visitorAnalysis);
+			VisitAstNode(conditionalExpression.FalseExpression, visitorAnalysis);
+			visitorAnalysis.symbolicContext = null;
+			VisitAstNode(conditionalExpression.Condition, visitorAnalysis);
 			return default;
 		}
 
-		public override int VisitPrimitiveExpression(PrimitiveExpression primitiveExpression, SymbolicContext symbolicContext)
+		public override int VisitPrimitiveExpression(PrimitiveExpression primitiveExpression, VisitorAnalysis visitorAnalysis)
 		{
-			return base.VisitPrimitiveExpression(primitiveExpression, symbolicContext);
+			return base.VisitPrimitiveExpression(primitiveExpression, visitorAnalysis);
 		}
 
-		public override int VisitInvocationExpression(InvocationExpression invocationExpression, SymbolicContext symbolicContext)
+		public override int VisitInvocationExpression(InvocationExpression invocationExpression, VisitorAnalysis visitorAnalysis)
 		{
 			if (invocationExpression.GetSymbol() is IMethod method)
 			{
@@ -723,30 +729,30 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					int argumentIndex = 0;
 					foreach (var child in invocationExpression.Children)
 					{
-						symbolicContext = null;
+						visitorAnalysis.symbolicContext = null;
 						if (child.Role == Roles.Argument)
 						{
 							var invocationParameter = invocationMethod.GetParameter(argumentIndex++, argMap);
 							if (invocationParameter is not null)
 							{
-								symbolicContext = MergeVariableInference(invocationParameter.Variable, symbolicContext);
-								SetRepresentation(ref symbolicContext, invocationParameter.Parameter.Name);
+								visitorAnalysis.symbolicContext = MergeVariableInference(invocationParameter.Variable, visitorAnalysis.symbolicContext);
+								SetRepresentation(ref visitorAnalysis.symbolicContext, invocationParameter.Parameter.Name);
 							}
 						}
-						VisitAstNode(child, symbolicContext);
+						VisitAstNode(child, visitorAnalysis);
 					}
 				}
 			}
 			return default;
 		}
 
-		protected override int VisitAstNode(AstNode node, SymbolicContext symbolicContext)
+		protected override int VisitAstNode(AstNode node, VisitorAnalysis visitorAnalysis)
 		{
-			var inheritedContext = symbolicContext = MergeVariableInference(node.GetILVariable(), symbolicContext);
-			symbolicContext = NeedsSymbolicContext(node) ? Ensure(symbolicContext) : null;
-			node.SaveContext(inheritedContext ?? symbolicContext);
+			var inheritedContext = visitorAnalysis.symbolicContext = MergeVariableInference(node.GetILVariable(), visitorAnalysis.symbolicContext);
+			visitorAnalysis.symbolicContext = NeedsSymbolicContext(node) ? Ensure(visitorAnalysis.symbolicContext) : null;
+			node.SaveContext(inheritedContext ?? visitorAnalysis.symbolicContext);
 
-			return base.VisitAstNode(node, symbolicContext);
+			return base.VisitAstNode(node, visitorAnalysis);
 		}
 
 		private static bool NeedsSymbolicContext(AstNode node)
@@ -864,7 +870,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #if DEBUG_ANNOTATE_INVOCATIONS
 				AnnotateInvocations(node);
 #endif
-				VisitChildren(node, null);
+				VisitChildren(node, new());
 				ReplacePrimitiveExpressions(node);
 				RenameSymbolicVariables(node);
 #if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
