@@ -1,7 +1,6 @@
 //#define DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
 //#define DEBUG_ANNOTATE_INVOCATIONS
 //#define DEBUG_VERBOSE
-#define BITVALUE_STUFF
 
 using System;
 using System.Linq;
@@ -866,17 +865,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			this.transformContext = transformContext;
 			try
 			{
-#if BITVALUE_STUFF
 				PopulateSymbolicBitfields();
-#endif
 				BuildMethodMap(node);
 #if DEBUG_ANNOTATE_INVOCATIONS
 				AnnotateInvocations(node);
 #endif
 				VisitChildren(node, null);
-#if BITVALUE_STUFF
 				ReplacePrimitiveExpressions(node);
-#endif
 				RenameSymbolicVariables(node);
 #if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
 				CleanupSymbolicAnnotations(node);
