@@ -58,11 +58,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #endif
 		}
 
-		public struct Analysis
-		{
-			internal SymbolicContext symbolicContext;
-		}
-
 		#region SymbolicRepresentation
 		public class SymbolicRepresentation
 		{
@@ -125,8 +120,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public readonly TransformContext Context;
-			public readonly MethodScope DeclaredMethod;
+			public readonly TransformContext LocalTransformContext;
+			internal readonly VariableScope LocalScope;
 
 			private static int contextCount = 0;
 			private Inference inference;
@@ -147,10 +142,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			internal SymbolicContext(TransformContext context, MethodScope declaredMethod)
+			internal SymbolicContext(TransformContext transformContext, VariableScope localScope)
 			{
-				Context = context;
-				DeclaredMethod = declaredMethod;
+				LocalTransformContext = transformContext;
+				LocalScope = localScope;
 				contextNumber = ++contextCount;
 			}
 
@@ -179,7 +174,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#endregion
 
 		#region BitValue/BitValueExpression/Bitmask/Bitfield
-		class BitValue
+		internal class BitValue
 		{
 			public virtual bool Inverted => false;
 			public virtual BitValue UninvertedValue => this;
@@ -222,7 +217,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		abstract class Bitmask : BitValue
+		internal abstract class Bitmask : BitValue
 		{
 			protected readonly BitValue bitValue;
 
@@ -233,7 +228,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class CombinedBitmask : Bitmask
+		internal class CombinedBitmask : Bitmask
 		{
 			protected readonly BitValue bitValue2;
 
@@ -256,7 +251,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class GroupedBitmask : Bitmask
+		internal class GroupedBitmask : Bitmask
 		{
 			public GroupedBitmask(BitValue bv) : base(bv)
 			{
@@ -268,7 +263,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class InvertedBitmask : Bitmask
+		internal class InvertedBitmask : Bitmask
 		{
 			public override bool Inverted => true;
 			public override BitValue UninvertedValue => bitValue;
@@ -288,7 +283,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class NamedBitmask : Bitmask, IComparable<NamedBitmask>
+		internal class NamedBitmask : Bitmask, IComparable<NamedBitmask>
 		{
 			public override IField Field => field;
 			public BitValue Expansion => bitValue;
@@ -319,7 +314,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class BitPosition : BitValue
+		internal class BitPosition : BitValue
 		{
 			public override IField Field => field;
 			private IField field = null;
@@ -351,7 +346,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		class Bitfield
+		internal class Bitfield
 		{
 			private readonly BitPosition[] position = Enumerable.Range(0, 32).Select(x => new BitPosition(x)).ToArray();
 
@@ -498,12 +493,100 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 		#endregion
 
-		class InferenceEngine
+		public struct Analysis
 		{
-			public readonly Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
-			public readonly List<SymbolicRepresentation> symbolicRepresentationList = new();
-			public readonly MethodAutoMap methodMap = new();
-			public readonly AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
+			internal TransformContext transformContext;
+			internal InferenceEngine inferenceEngine;
+			internal SymbolicContext symbolicContext;
+			internal VariableScope variableScope;
+
+			internal bool HasVariableScope => variableScope is not null;
+
+			internal Analysis(TransformContext transformContext, AstNode rootNode)
+			{
+				this.transformContext = transformContext;
+				inferenceEngine = new(rootNode);
+				symbolicContext = null;
+				variableScope = null;
+			}
+
+			internal void CurrentNode(AstNode node)
+			{
+				if (node.GetSymbol() is IEntity entity)
+				{
+					transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun,
+						new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
+				}
+				MergeVariableInference(node.GetILVariable());
+				var inheritedContext = symbolicContext;
+				if (InheritsSymbolicContext(node))
+					EnsureSymbolicContext();
+				else
+					symbolicContext = null;
+
+				node.SaveContext(inheritedContext ?? symbolicContext);
+			}
+
+			internal void CurrentName(string name)
+			{
+				var symbolicRepresentation = inferenceEngine.InferRepresentation(name);
+
+				if (symbolicRepresentation is not null)
+				{
+					EnsureSymbolicContext();
+					symbolicContext.SetRepresentation(symbolicRepresentation);
+				}
+			}
+
+			internal void CreateVariableScope()
+			{
+				variableScope = new();
+			}
+
+			private void CreateSymbolicContext()
+			{
+				symbolicContext = new(transformContext, variableScope);
+			}
+
+			private void EnsureSymbolicContext()
+			{
+				if (symbolicContext is null)
+					CreateSymbolicContext();
+			}
+
+			internal void MergeVariableInference(ILVariable variable)
+			{
+				if (variable is not null)
+				{
+					EnsureSymbolicContext();
+					symbolicContext.Merge(inferenceEngine.variableInferenceMap[variable]);
+				}
+			}
+
+			private static bool InheritsSymbolicContext(AstNode node)
+			{
+				return
+					node is BinaryOperatorExpression binary && (binary.Operator.IsBitwise() || binary.Operator.IsEquality()) ||
+					node is UnaryOperatorExpression unary && unary.Operator == UnaryOperatorType.BitNot ||
+					node is AssignmentExpression assign && (assign.Operator == AssignmentOperatorType.Assign || assign.Operator.IsBitwise()) ||
+					node is ConditionalExpression ||
+					node is VariableInitializer ||
+					node is MemberReferenceExpression ||
+					node is CastExpression ||
+					node is IdentifierExpression ||
+					node is NamedArgumentExpression ||
+					node is ParenthesizedExpression ||
+					node is PrimitiveExpression ||
+					node is Identifier;
+			}
+		}
+
+		internal class InferenceEngine
+		{
+			internal readonly Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
+			internal readonly List<SymbolicRepresentation> symbolicRepresentationList = new();
+			internal readonly MethodAutoMap methodMap = new();
+			internal readonly AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
 
 			public bool AddBitfield(string name, ITypeDefinition definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
 			{
@@ -551,32 +634,40 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					}
 				}
 			}
-		}
 
-		private SymbolicContext MergeVariableInference(ILVariable variable, SymbolicContext symbolicContext = null)
-		{
-			return variable is null ? symbolicContext : Ensure(symbolicContext).Merge(inferenceEngine.variableInferenceMap[variable]);
-		}
-
-		private SymbolicRepresentation InferRepresentation(string name)
-		{
-			if (name is not null)
+			internal SymbolicRepresentation InferRepresentation(string name)
 			{
-				foreach (var symbolicRepresentation in inferenceEngine.symbolicRepresentationList)
+				if (name is not null)
 				{
-					if (symbolicRepresentation.MatchParameterName(name))
-						return symbolicRepresentation;
+					foreach (var symbolicRepresentation in symbolicRepresentationList)
+					{
+						if (symbolicRepresentation.MatchParameterName(name))
+							return symbolicRepresentation;
+					}
 				}
+				return null;
 			}
-			return null;
 		}
-		private void SetRepresentation(ref SymbolicContext symbolicContext, string name)
-		{
-			var symbolicRepresentation = InferRepresentation(name);
 
-			if (symbolicRepresentation is not null)
+		internal class VariableScope
+		{
+			private HashSet<string> localNames = new();
+
+			public bool AddLocalName(string name)
 			{
-				(symbolicContext = Ensure(symbolicContext)).SetRepresentation(symbolicRepresentation);
+				return localNames.Add(name);
+			}
+
+			public string AddPrefixedName(string prefix)
+			{
+				int unique = 1;
+				string name;
+
+				while (!AddLocalName(name = prefix + unique.ToString()))
+				{
+					++unique;
+				}
+				return name;
 			}
 		}
 
@@ -608,72 +699,21 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 #endif
 		#endregion
 
-		public class MethodScope
-		{
-			private HashSet<string> localNames = new();
-
-			public bool AddLocalName(string name)
-			{
-				return localNames.Add(name);
-			}
-
-			public string AddPrefixedName(string prefix)
-			{
-				int unique = 1;
-				string name;
-
-				while (!AddLocalName(name = prefix + unique.ToString()))
-				{
-					++unique;
-				}
-				return name;
-			}
-		}
-
-		private MethodScope currentScope = null;
-
-		private SymbolicContext CreateSymbolicContext()
-		{
-			return new(transformContext, currentScope);
-		}
-
-		private SymbolicContext Ensure(SymbolicContext symbolicContext)
-		{
-			return symbolicContext ?? CreateSymbolicContext();
-		}
-
 		public override int VisitTypeDeclaration(TypeDeclaration typeDeclaration, Analysis analysis)
 		{
-			var previousContext = transformContext.Retarget(typeDeclaration);
-			try
-			{
-				return base.VisitTypeDeclaration(typeDeclaration, analysis);
-			}
-			finally
-			{
-				transformContext = previousContext;
-			}
+			return base.VisitTypeDeclaration(typeDeclaration, analysis);
 		}
 
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, Analysis analysis)
 		{
-			var previousContext = transformContext.Retarget(methodDeclaration);
-			var previousScope = currentScope;
-			try
-			{
-				currentScope = new();
-				return base.VisitMethodDeclaration(methodDeclaration, analysis);
-			}
-			finally
-			{
-				currentScope = previousScope;
-				transformContext = previousContext;
-			}
+			analysis.CreateVariableScope();
+
+			return base.VisitMethodDeclaration(methodDeclaration, analysis);
 		}
 
 		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, Analysis analysis)
 		{
-			currentScope?.AddLocalName(parameterDeclaration.Name);
+			analysis.variableScope?.AddLocalName(parameterDeclaration.Name);
 			return base.VisitParameterDeclaration(parameterDeclaration, analysis);
 		}
 
@@ -681,7 +721,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			foreach (var variableInitializer in variableDeclarationStatement.Variables)
 			{
-				currentScope?.AddLocalName(variableInitializer.Name);
+				analysis.variableScope?.AddLocalName(variableInitializer.Name);
 			}
 			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, analysis);
 		}
@@ -689,7 +729,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, Analysis analysis)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
-			if (inferenceEngine.namedBitmaskMap.TryGetValue(field, out var bitmask))
+			if (analysis.inferenceEngine.namedBitmaskMap.TryGetValue(field, out var bitmask))
 			{
 				ModifyFieldDeclaration(fieldDeclaration, bitmask.Expansion);
 			}
@@ -699,7 +739,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitIdentifier(Identifier identifier, Analysis analysis)
 		{
-			SetRepresentation(ref analysis.symbolicContext, identifier.Name);
+			analysis.CurrentName(identifier.Name);
 			return base.VisitIdentifier(identifier, analysis);
 		}
 
@@ -721,7 +761,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			if (invocationExpression.GetSymbol() is IMethod method)
 			{
-				var invocationMethod = inferenceEngine.methodMap[method];
+				var invocationMethod = analysis.inferenceEngine.methodMap[method];
 				var rr = invocationExpression.Annotation<CSharpInvocationResolveResult>();
 				if (rr != null)
 				{
@@ -735,8 +775,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 							var invocationParameter = invocationMethod.GetParameter(argumentIndex++, argMap);
 							if (invocationParameter is not null)
 							{
-								analysis.symbolicContext = MergeVariableInference(invocationParameter.Variable, analysis.symbolicContext);
-								SetRepresentation(ref analysis.symbolicContext, invocationParameter.Parameter.Name);
+								analysis.MergeVariableInference(invocationParameter.Variable);
+								analysis.CurrentName(invocationParameter.Parameter.Name);
 							}
 						}
 						VisitAstNode(child, analysis);
@@ -748,28 +788,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		protected override int VisitAstNode(AstNode node, Analysis analysis)
 		{
-			var inheritedContext = analysis.symbolicContext = MergeVariableInference(node.GetILVariable(), analysis.symbolicContext);
-			analysis.symbolicContext = NeedsSymbolicContext(node) ? Ensure(analysis.symbolicContext) : null;
-			node.SaveContext(inheritedContext ?? analysis.symbolicContext);
-
+			analysis.CurrentNode(node);
 			return base.VisitAstNode(node, analysis);
-		}
-
-		private static bool NeedsSymbolicContext(AstNode node)
-		{
-			return
-				node is BinaryOperatorExpression binary && (binary.Operator.IsBitwise() || binary.Operator.IsEquality()) ||
-				node is UnaryOperatorExpression unary && unary.Operator == UnaryOperatorType.BitNot ||
-				node is AssignmentExpression assign && (assign.Operator == AssignmentOperatorType.Assign || assign.Operator.IsBitwise()) ||
-				node is ConditionalExpression ||
-				node is VariableInitializer ||
-				node is MemberReferenceExpression ||
-				node is CastExpression ||
-				node is IdentifierExpression ||
-				node is NamedArgumentExpression ||
-				node is ParenthesizedExpression ||
-				node is PrimitiveExpression ||
-				node is Identifier;
 		}
 
 		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
@@ -813,16 +833,15 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			void RenameIdentifier(AstNode node)
 			{
 				var variable = node.GetILVariable();
-				if (variable is not null)
+				if (variable is not null && node.GetSymbolicContext() is SymbolicContext symbolicContext)
 				{
-					var symbolicContext = node.GetSymbolicContext() as SymbolicContext;
-					var declaredMethod = symbolicContext.DeclaredMethod;
-					if (declaredMethod is not null)
+					var localScope = symbolicContext.LocalScope;
+					if (localScope is not null)
 					{
-						var prefix = symbolicContext?.RepresentationString?.ToLowerInvariant();
+						var prefix = symbolicContext.RepresentationString?.ToLowerInvariant();
 						if (prefix is not null && variable.Name.StartsWith("num"))
 						{
-							variable.Name = declaredMethod.AddPrefixedName(prefix);
+							variable.Name = localScope.AddPrefixedName(prefix);
 						}
 
 						var identifier = node.GetChildByRole(Roles.Identifier);
@@ -856,21 +875,20 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 		TransformContext transformContext;
-		InferenceEngine inferenceEngine;
 
 		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
 			this.transformContext = transformContext;
-			inferenceEngine = new(node);
-			inferenceEngine.AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
-			inferenceEngine.AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
+			Analysis a = new(transformContext, node);
+			a.inferenceEngine.AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
+			a.inferenceEngine.AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
 
 			try
 			{
 #if DEBUG_ANNOTATE_INVOCATIONS
 				AnnotateInvocations(node);
 #endif
-				VisitChildren(node, new());
+				VisitChildren(node, a);
 				ReplacePrimitiveExpressions(node);
 				RenameSymbolicVariables(node);
 #if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
@@ -921,17 +939,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return operatorType == AssignmentOperatorType.BitwiseAnd
 				|| operatorType == AssignmentOperatorType.BitwiseOr
 				|| operatorType == AssignmentOperatorType.ExclusiveOr;
-		}
-
-		public static TransformContext Retarget(this TransformContext transformContext, IEntity entity)
-		{
-			return entity is null ? transformContext :
-				new(transformContext.TypeSystem, transformContext.DecompileRun, new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
-		}
-
-		public static TransformContext Retarget(this TransformContext transformContext, AstNode node)
-		{
-			return transformContext.Retarget(node.GetSymbol() as IEntity);
 		}
 
 		public static ITypeDefinition GetDefinedType(this TransformContext transformContext, string typeName)
