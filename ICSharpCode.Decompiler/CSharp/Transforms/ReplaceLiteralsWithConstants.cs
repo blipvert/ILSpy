@@ -523,11 +523,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return true;
 			}
 
-			public CodeAnalysis(TransformContext transformContext, AstNode rootNode)
+			public CodeAnalysis(AstNode rootNode)
 			{
 				BuildMethodMap(rootNode);
-				AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
-				AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
 			}
 
 			private void BuildMethodMap(AstNode rootNode)
@@ -857,7 +855,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
 			this.transformContext = transformContext;
-			codeAnalysis = new(transformContext, node);
+			codeAnalysis = new(node);
+			codeAnalysis.AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
+			codeAnalysis.AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
+
 			try
 			{
 #if DEBUG_ANNOTATE_INVOCATIONS
