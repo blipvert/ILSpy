@@ -69,12 +69,12 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			{
 				WriteAttribute("Variable", variable.Name, true);
 			}
-			var parameter = node.Annotation<InvocationParameter>();
+			var parameter = node.Annotation<IInvocationParameter>();
 			if (parameter != null)
 			{
-				WriteAttribute("ParameterId", parameter.uniqueId);
-				WriteAttribute("ParameterSymbol", parameter.parameter.Name);
-				WriteAttribute("ParameterSymbolType", parameter.parameter.GetType().Name);
+				WriteAttribute("ParameterId", parameter.UniqueId);
+				WriteAttribute("ParameterSymbol", parameter.Parameter.Name);
+				WriteAttribute("ParameterSymbolType", parameter.Parameter.GetType().Name);
 				if (parameter.Variable is not null)
 					WriteAttribute("ParameterVariable", parameter.Variable.Name);
 			}
@@ -83,7 +83,7 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			{
 				WriteAttribute("ResolveResult", resolveResult.GetType().Name);
 			}
-			WriteContextAttributes(node.Annotation<SymbolicContext>());
+			WriteContextAttributes(node.Annotation<ISymbolicContext>());
 			node.AcceptVisitor(this);
 			if (node is Expression && !(node.Parent is Expression))
 			{
@@ -188,15 +188,15 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 			}
 		}
 
-		private void WriteContextAttributes(SymbolicContext symbolicContext)
+		private void WriteContextAttributes(ISymbolicContext symbolicContext)
 		{
 			if (symbolicContext != null)
 			{
 				WriteAttribute("Context", symbolicContext.ContextNumberString);
-				var representation = symbolicContext.Representation;
+				var representation = symbolicContext.RepresentationString;
 				if (representation != null)
 				{
-					WriteAttribute("Representation", representation.Name);
+					WriteAttribute("Representation", representation);
 				}
 			}
 		}
