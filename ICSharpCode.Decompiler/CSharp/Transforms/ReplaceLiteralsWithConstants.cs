@@ -887,17 +887,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 	#region SymbolicContextExtensions
 	public static class SymbolicContextExtensions
 	{
-#if false
-		public static SymbolicContext Merge(this SymbolicContext context1, SymbolicContext context2)
-		{
-			if (context1 == null)
-				context1 = context2;
-			else
-				context1.Merge(context2);
-			return context1;
-		}
-#endif
-
 		public static ILVariable GetILVariable(this AstNode node)
 		{
 			if (node.Annotation<ResolveResult>() is ILVariableResolveResult rr)
