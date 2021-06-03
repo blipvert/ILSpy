@@ -40,8 +40,13 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 				// Store next to allow the loop to continue
 				// if the visitor removes/replaces child.
 				next = child.NextSibling;
-				child.AcceptVisitor(this);
+				VisitAstNode(child);
 			}
+		}
+
+		protected virtual void VisitAstNode(AstNode node)
+		{
+			node.AcceptVisitor(this);
 		}
 
 		public virtual void VisitNullNode(AstNode nullNode)
@@ -716,9 +721,14 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 				// Store next to allow the loop to continue
 				// if the visitor removes/replaces child.
 				next = child.NextSibling;
-				child.AcceptVisitor(this);
+				VisitAstNode(child);
 			}
 			return default(T);
+		}
+
+		protected virtual T VisitAstNode(AstNode node)
+		{
+			return node.AcceptVisitor(this);
 		}
 
 		public virtual T VisitNullNode(AstNode nullNode)
@@ -1394,9 +1404,14 @@ namespace ICSharpCode.Decompiler.CSharp.Syntax
 				// Store next to allow the loop to continue
 				// if the visitor removes/replaces child.
 				next = child.NextSibling;
-				child.AcceptVisitor(this, data);
+				VisitAstNode(child, data);
 			}
 			return default(S);
+		}
+
+		protected virtual S VisitAstNode(AstNode node, T data)
+		{
+			return node.AcceptVisitor(this, data);
 		}
 
 		public virtual S VisitNullNode(AstNode nullNode, T data)
