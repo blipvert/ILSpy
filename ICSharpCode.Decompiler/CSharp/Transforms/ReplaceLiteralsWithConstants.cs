@@ -120,7 +120,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public readonly TransformContext LocalTransformContext;
+			public readonly TransformContext TransformContext;
 			internal readonly LocalScope LocalScope;
 
 			private static int contextCount = 0;
@@ -144,7 +144,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			internal SymbolicContext(TransformContext transformContext, LocalScope localScope)
 			{
-				LocalTransformContext = transformContext;
+				TransformContext = transformContext;
 				LocalScope = localScope;
 				contextNumber = ++contextCount;
 			}
