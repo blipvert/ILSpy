@@ -500,12 +500,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			internal SymbolicContext symbolicContext;
 			internal LocalScope localScope;
 
-			internal Analysis(TransformContext transformContext, AstNode rootNode)
+			internal Analysis(TransformContext transformContext, InferenceEngine inferenceEngine)
 			{
 				this.transformContext = transformContext;
-				inferenceEngine = new(rootNode);
+				this.inferenceEngine = inferenceEngine;
 				localScope = new();
 				symbolicContext = null;
+			}
+
+			internal Analysis(TransformContext transformContext, AstNode rootNode)
+				: this(transformContext, new InferenceEngine(rootNode))
+			{
 			}
 
 			internal void CurrentNode(AstNode node)
@@ -884,16 +889,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
 			this.transformContext = transformContext;
-			Analysis a = new(transformContext, node);
-			a.inferenceEngine.AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
-			a.inferenceEngine.AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
+			InferenceEngine ie = new(node);
+			ie.AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
+			ie.AddBitfield("HitMask", transformContext.GetDefinedType("Voxel"), "HM_", bitLength: 12);
+			Analysis analysis = new(transformContext, ie);
 
 			try
 			{
 #if DEBUG_ANNOTATE_INVOCATIONS
 				AnnotateInvocations(node);
 #endif
-				VisitChildren(node, a);
+				VisitChildren(node, analysis);
 				ReplacePrimitiveExpressions(node);
 				RenameSymbolicVariables(node);
 #if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
