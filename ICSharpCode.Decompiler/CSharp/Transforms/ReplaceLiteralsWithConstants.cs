@@ -508,11 +508,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				symbolicContext = null;
 			}
 
-			internal Analysis(TransformContext transformContext, AstNode rootNode)
-				: this(transformContext, new InferenceEngine(rootNode))
-			{
-			}
-
 			internal void CurrentNode(AstNode node)
 			{
 				if (node.GetSymbol() is IEntity entity)
