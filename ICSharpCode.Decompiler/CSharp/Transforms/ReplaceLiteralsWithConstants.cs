@@ -191,14 +191,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				Complexity = complexity;
 			}
 
-			public virtual Expression Express(TransformContext context, IType currentType)
+			public virtual Expression Express(TransformContext context)
 			{
 				return new PrimitiveExpression(Value);
 			}
 
-			public virtual Expression Translate(TransformContext context, IType currentType)
+			public virtual Expression Translate(TransformContext context)
 			{
-				return Express(context, currentType).WithCIRR(context, Value);
+				return Express(context).WithCIRR(context, Value);
 			}
 
 			public virtual BitValue Group()
@@ -236,13 +236,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 				bitValue2 = bv2;
 			}
-			public override Expression Express(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context)
 			{
 				return
 					new BinaryOperatorExpression(
-						bitValue.Translate(context, currentType),
+						bitValue.Translate(context),
 						BinaryOperatorType.BitwiseOr,
-						bitValue2.Translate(context, currentType));
+						bitValue2.Translate(context));
 			}
 
 			public override BitValue Group()
@@ -257,9 +257,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 			}
 
-			public override Expression Express(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context)
 			{
-				return new ParenthesizedExpression(bitValue.Translate(context, currentType));
+				return new ParenthesizedExpression(bitValue.Translate(context));
 			}
 		}
 
@@ -272,9 +272,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			{
 			}
 
-			public override Expression Express(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context)
 			{
-				return new UnaryOperatorExpression(UnaryOperatorType.BitNot, bitValue.Translate(context, currentType));
+				return new UnaryOperatorExpression(UnaryOperatorType.BitNot, bitValue.Translate(context));
 			}
 
 			public override BitValue Invert()
@@ -303,14 +303,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return other.Value.CompareTo(Value);
 			}
 
-			public override Expression Express(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context)
 			{
-				return Field.CreateMemberReference(context, currentType);
+				return Field.CreateMemberReference(context);
 			}
 
-			public override Expression Translate(TransformContext context, IType currentType)
+			public override Expression Translate(TransformContext context)
 			{
-				return Express(context, currentType).WithMemberRR(context, Field);
+				return Express(context).WithMemberRR(context, Field);
 			}
 		}
 
@@ -330,19 +330,19 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				this.field = field;
 			}
 
-			private Expression GetPositionExpression(TransformContext context, IType currentType)
+			private Expression GetPositionExpression(TransformContext context)
 			{
-				return (Field is null) ? position.CreatePrimitive(context) : Field.CreateMemberReference(context, currentType);
+				return (Field is null) ? position.CreatePrimitive(context) : Field.CreateMemberReference(context);
 			}
 
-			public override Expression Express(TransformContext context, IType currentType)
+			public override Expression Express(TransformContext context)
 			{
 				return
 					new ParenthesizedExpression(
 						new BinaryOperatorExpression(
 							1.CreatePrimitive(context),
 							BinaryOperatorType.ShiftLeft,
-							GetPositionExpression(context, currentType)).WithCIRR(context, Value));
+							GetPositionExpression(context)).WithCIRR(context, Value));
 			}
 		}
 
@@ -746,7 +746,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			var field = fieldDeclaration.GetSymbol() as IField;
 			if (analysis.inferenceEngine.namedBitmaskMap.TryGetValue(field, out var bitmask))
 			{
-				ModifyFieldDeclaration(fieldDeclaration, bitmask.Expansion);
+				ModifyFieldDeclaration(fieldDeclaration, analysis.transformContext, bitmask.Expansion);
 			}
 
 			return base.VisitFieldDeclaration(fieldDeclaration, analysis);
@@ -807,25 +807,25 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return base.VisitAstNode(node, analysis);
 		}
 
-		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, BitValue bitValue)
+		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, TransformContext context, BitValue bitValue)
 		{
-			primitiveExpression.ReplaceWith(bitValue.Express(transformContext, primitiveExpression.GetEnclosingType()).CopyAnnotationsFrom(primitiveExpression));
+			primitiveExpression.ReplaceWith(bitValue.Express(context).CopyAnnotationsFrom(primitiveExpression));
 		}
 
-		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, Bitfield bitfield)
+		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, TransformContext context, Bitfield bitfield)
 		{
 			if ((primitiveExpression.Value is int intValue) && intValue != 0)
 			{
-				ReplacePrimitiveWithSymbolic(primitiveExpression, bitfield.Translate(intValue));
+				ReplacePrimitiveWithSymbolic(primitiveExpression, context, bitfield.Translate(intValue));
 			}
 		}
 
-		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, BitValue bitValue)
+		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, TransformContext context, BitValue bitValue)
 		{
 			foreach (var variable in fieldDeclaration.Variables)
 			{
 				if (variable.Initializer is PrimitiveExpression primitiveExpression)
-					ReplacePrimitiveWithSymbolic(primitiveExpression, bitValue);
+					ReplacePrimitiveWithSymbolic(primitiveExpression, context, bitValue);
 			}
 		}
 
@@ -836,9 +836,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
 				if (symbolicContext is not null)
 				{
-					var symbolicBitfield = symbolicContext.Representation?.Meaning as Bitfield;
-					if (symbolicBitfield is not null)
-						ReplacePrimitiveWithSymbolic(primitiveExpression, symbolicBitfield);
+					if (symbolicContext.Representation?.Meaning is Bitfield symbolicBitfield)
+					{
+						ReplacePrimitiveWithSymbolic(primitiveExpression, symbolicContext.TransformContext, symbolicBitfield);
+					}
 				}
 			}
 		}
@@ -1001,10 +1002,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return node.GetEnclosing<TypeDeclaration>() as IType;
 		}
 
-		public static Expression CreateMemberReference(this IMember member, TransformContext context, IType currentType)
+		public static Expression CreateMemberReference(this IMember member, TransformContext context)
 		{
 			var declaringType = member.DeclaringType;
-			if (declaringType == currentType)
+			if (declaringType == context.CurrentTypeDefinition)
 				return new IdentifierExpression(member.Name);
 
 			return new MemberReferenceExpression(
