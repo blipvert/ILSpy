@@ -496,9 +496,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public struct Analysis
 		{
 			internal readonly InferenceEngine inferenceEngine;
-			internal TransformContext transformContext;
-			internal SymbolicContext symbolicContext;
-			internal LocalScope localScope;
+			private TransformContext transformContext;
+			private SymbolicContext symbolicContext;
+			private LocalScope localScope;
 
 			internal Analysis(TransformContext transformContext, InferenceEngine inferenceEngine)
 			{
@@ -537,6 +537,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				localScope = new();
 			}
 
+			internal void AddLocalName(string name)
+			{
+				localScope.AddName(name);
+			}
+
+			internal void DropSymbolicContext()
+			{
+				symbolicContext = null;
+			}
+
 			private SymbolicContext CreateSymbolicContext()
 			{
 				return new(transformContext, localScope);
@@ -555,7 +565,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 				finally
 				{
-					symbolicContext = null;
+					DropSymbolicContext();
 				}
 			}
 
@@ -718,7 +728,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, Analysis analysis)
 		{
-			analysis.localScope?.AddName(parameterDeclaration.Name);
+			analysis.AddLocalName(parameterDeclaration.Name);
 			return base.VisitParameterDeclaration(parameterDeclaration, analysis);
 		}
 
@@ -726,7 +736,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			foreach (var variableInitializer in variableDeclarationStatement.Variables)
 			{
-				analysis.localScope?.AddName(variableInitializer.Name);
+				analysis.AddLocalName(variableInitializer.Name);
 			}
 			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, analysis);
 		}
@@ -752,7 +762,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			VisitAstNode(conditionalExpression.TrueExpression, analysis);
 			VisitAstNode(conditionalExpression.FalseExpression, analysis);
-			analysis.symbolicContext = null;
+			analysis.DropSymbolicContext();
 			VisitAstNode(conditionalExpression.Condition, analysis);
 			return default;
 		}
@@ -774,7 +784,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					int argumentIndex = 0;
 					foreach (var child in invocationExpression.Children)
 					{
-						analysis.symbolicContext = null;
+						analysis.DropSymbolicContext();
 						if (child.Role == Roles.Argument)
 						{
 							var invocationParameter = invocationMethod.GetParameter(argumentIndex++, argMap);
