@@ -421,7 +421,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return bitValueInv.Complexity < bitValue.Complexity ? bitValueInv : bitValue;
 			}
 
-			public IEnumerable<BitValue> DecomposeIter(int value)
+			private IEnumerable<BitValue> DecomposeIter(int value)
 			{
 				foreach (var m in masks)
 				{
@@ -439,7 +439,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public BitValue Decompose(int value)
+			private BitValue Decompose(int value)
 			{
 				return DecomposeIter(value).Aggregate(new BitValue(), (total, bv) => total.Combine(bv));
 			}
