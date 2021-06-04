@@ -29,11 +29,21 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public SymbolicRepresentationIncompatibleMerge(string message) : base(message) { }
 	}
 
+	public interface ISymbolicMeaning
+	{
+		ISymbolicValue Decode(PrimitiveExpression primitiveExpression);
+	}
+
+	public interface ISymbolicValue
+	{
+		Expression Express(TransformContext context);
+	}
+
 	public interface ISymbolicRepresentation
 	{
 		abstract string Name { get; }
 		abstract string Prefix { get; }
-		abstract object Meaning { get; }
+		abstract ISymbolicMeaning Meaning { get; }
 	}
 
 	public interface ISymbolicContext
@@ -72,13 +82,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			public readonly string name;
 			public readonly string prefix;
-			public readonly object meaning;
+			public readonly ISymbolicMeaning meaning;
 			public string Name => name;
 			public string Prefix => prefix;
-			public object Meaning => meaning;
+			public ISymbolicMeaning Meaning => meaning;
 			private readonly string paramName1, paramName2;
 
-			public SymbolicRepresentation(string name, string prefix, object meaning)
+			public SymbolicRepresentation(string name, string prefix, ISymbolicMeaning meaning)
 			{
 				this.name = name;
 				this.prefix = prefix;
@@ -87,7 +97,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				this.meaning = meaning;
 			}
 
-			public SymbolicRepresentation(string name, object meaning) : this(name, name.ToLowerInvariant(), meaning) { }
+			public SymbolicRepresentation(string name, ISymbolicMeaning meaning) : this(name, name.ToLowerInvariant(), meaning) { }
 
 			public bool MatchParameterName(string name)
 			{
@@ -188,7 +198,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#endregion
 
 		#region BitValue/BitValueExpression/Bitmask/Bitfield
-		internal class BitValue
+		internal class BitValue : ISymbolicValue
 		{
 			public virtual bool Inverted => false;
 			public virtual BitValue UninvertedValue => this;
@@ -360,7 +370,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		internal class Bitfield
+		internal class Bitfield : ISymbolicMeaning
 		{
 			private readonly BitPosition[] position = Enumerable.Range(0, 32).Select(x => new BitPosition(x)).ToArray();
 
@@ -419,6 +429,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				var bitValue = Decompose(value);
 				var bitValueInv = Decompose(~value).Invert();
 				return bitValueInv.Complexity < bitValue.Complexity ? bitValueInv : bitValue;
+			}
+
+			public ISymbolicValue Decode(PrimitiveExpression primitiveExpression)
+			{
+				if (primitiveExpression.Value is int intValue)
+					return Translate(intValue);
+				return null;
 			}
 
 			private IEnumerable<BitValue> DecomposeIter(int value)
