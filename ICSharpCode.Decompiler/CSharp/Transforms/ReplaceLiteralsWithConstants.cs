@@ -925,6 +925,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		void IAstTransform.Run(AstNode node, TransformContext transformContext)
 		{
+			if (this.transformContext is not null)
+				throw new InvalidOperationException("Transform re-entered");
+
 			this.transformContext = transformContext;
 			InferenceEngine ie = new(node);
 			ie.AddBitfield("LayerMask", transformContext.GetDefinedType("Constants"), "cLayerMask", "cLayer");
@@ -939,12 +942,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				VisitChildren(node, analysis);
 				ReplacePrimitiveExpressions(node);
 				RenameSymbolicVariables(node);
-#if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
-				CleanupSymbolicAnnotations(node);
-#endif
 			}
 			finally
 			{
+#if !DEBUG_ANNOTATE_SYMBOLIC_CONTEXTS
+				CleanupSymbolicAnnotations(node);
+#endif
 				this.transformContext = null;
 			}
 		}
