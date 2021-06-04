@@ -121,7 +121,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 
 			public readonly TransformContext LocalTransformContext;
-			internal readonly VariableScope LocalScope;
+			internal readonly LocalScope LocalScope;
 
 			private static int contextCount = 0;
 			private Inference inference;
@@ -142,7 +142,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			internal SymbolicContext(TransformContext transformContext, VariableScope localScope)
+			internal SymbolicContext(TransformContext transformContext, LocalScope localScope)
 			{
 				LocalTransformContext = transformContext;
 				LocalScope = localScope;
@@ -498,16 +498,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			internal TransformContext transformContext;
 			internal InferenceEngine inferenceEngine;
 			internal SymbolicContext symbolicContext;
-			internal VariableScope variableScope;
-
-			internal bool HasVariableScope => variableScope is not null;
+			internal LocalScope localScope;
 
 			internal Analysis(TransformContext transformContext, AstNode rootNode)
 			{
 				this.transformContext = transformContext;
 				inferenceEngine = new(rootNode);
+				localScope = new();
 				symbolicContext = null;
-				variableScope = null;
 			}
 
 			internal void CurrentNode(AstNode node)
@@ -518,13 +516,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
 				}
 				MergeVariableInference(node.GetILVariable());
-				var inheritedContext = symbolicContext;
-				if (InheritsSymbolicContext(node))
-					EnsureSymbolicContext();
-				else
-					symbolicContext = null;
+				var symbolicContext = this.symbolicContext;
 
-				node.SaveContext(inheritedContext ?? symbolicContext);
+				node.SaveContext(InheritsSymbolicContext(node) ? EnsureSymbolicContext() : DetachSymbolicContext());
 			}
 
 			internal void CurrentName(string name)
@@ -538,20 +532,31 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			internal void CreateVariableScope()
+			internal void CreateLocalScope()
 			{
-				variableScope = new();
+				localScope = new();
 			}
 
-			private void CreateSymbolicContext()
+			private SymbolicContext CreateSymbolicContext()
 			{
-				symbolicContext = new(transformContext, variableScope);
+				return new(transformContext, localScope);
 			}
 
-			private void EnsureSymbolicContext()
+			private SymbolicContext EnsureSymbolicContext()
 			{
-				if (symbolicContext is null)
-					CreateSymbolicContext();
+				return symbolicContext ??= CreateSymbolicContext();
+			}
+
+			private SymbolicContext DetachSymbolicContext()
+			{
+				try
+				{
+					return symbolicContext;
+				}
+				finally
+				{
+					symbolicContext = null;
+				}
 			}
 
 			internal void MergeVariableInference(ILVariable variable)
@@ -649,13 +654,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		internal class VariableScope
+		internal class LocalScope
 		{
-			private HashSet<string> localNames = new();
+			private HashSet<string> localNames = null;
 
-			public bool AddLocalName(string name)
+			public bool AddName(string name)
 			{
-				return localNames.Add(name);
+				return (localNames ??= new()).Add(name);
 			}
 
 			public string AddPrefixedName(string prefix)
@@ -663,7 +668,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				int unique = 1;
 				string name;
 
-				while (!AddLocalName(name = prefix + unique.ToString()))
+				while (!AddName(name = prefix + unique.ToString()))
 				{
 					++unique;
 				}
@@ -706,14 +711,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, Analysis analysis)
 		{
-			analysis.CreateVariableScope();
+			analysis.CreateLocalScope();
 
 			return base.VisitMethodDeclaration(methodDeclaration, analysis);
 		}
 
 		public override int VisitParameterDeclaration(ParameterDeclaration parameterDeclaration, Analysis analysis)
 		{
-			analysis.variableScope?.AddLocalName(parameterDeclaration.Name);
+			analysis.localScope?.AddName(parameterDeclaration.Name);
 			return base.VisitParameterDeclaration(parameterDeclaration, analysis);
 		}
 
@@ -721,7 +726,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			foreach (var variableInitializer in variableDeclarationStatement.Variables)
 			{
-				analysis.variableScope?.AddLocalName(variableInitializer.Name);
+				analysis.localScope?.AddName(variableInitializer.Name);
 			}
 			return base.VisitVariableDeclarationStatement(variableDeclarationStatement, analysis);
 		}
