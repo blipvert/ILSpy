@@ -495,8 +495,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public struct Analysis
 		{
+			internal readonly InferenceEngine inferenceEngine;
 			internal TransformContext transformContext;
-			internal InferenceEngine inferenceEngine;
 			internal SymbolicContext symbolicContext;
 			internal LocalScope localScope;
 
