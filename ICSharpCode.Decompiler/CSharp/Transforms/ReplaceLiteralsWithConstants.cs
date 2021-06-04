@@ -510,7 +510,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			internal void CurrentNode(AstNode node)
 			{
-				if (node.GetSymbol() is IEntity entity)
+				if ((node is TypeDeclaration || node is MethodDeclaration) && node.GetSymbol() is IEntity entity)
 				{
 					transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun,
 						new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
