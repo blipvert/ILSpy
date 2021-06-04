@@ -29,11 +29,20 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public SymbolicRepresentationIncompatibleMerge(string message) : base(message) { }
 	}
 
+	public interface ISymbolicRepresentation
+	{
+		abstract string Name { get; }
+		abstract string Prefix { get; }
+		abstract object Meaning { get; }
+	}
+
 	public interface ISymbolicContext
 	{
 		abstract int ContextNumber { get; }
 		abstract int? InferenceNumber { get; }
 		abstract bool HasInference { get; }
+
+		abstract ISymbolicRepresentation Representation { get; }
 		abstract string ContextNumberString { get; }
 		abstract string RepresentationString { get; }
 	}
@@ -59,21 +68,26 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		}
 
 		#region SymbolicRepresentation
-		public class SymbolicRepresentation
+		public class SymbolicRepresentation : ISymbolicRepresentation
 		{
-			public readonly string Name;
-			public readonly string Prefix;
-			public readonly object Meaning;
+			public readonly string name;
+			public readonly string prefix;
+			public readonly object meaning;
+			public string Name => name;
+			public string Prefix => prefix;
+			public object Meaning => meaning;
 			private readonly string paramName1, paramName2;
 
-			public SymbolicRepresentation(string name, object meaning)
+			public SymbolicRepresentation(string name, string prefix, object meaning)
 			{
-				Name = name;
-				Prefix = name.ToLowerInvariant();
+				this.name = name;
+				this.prefix = prefix;
 				paramName1 = Prefix;
 				paramName2 = "_" + paramName1;
-				Meaning = meaning;
+				this.meaning = meaning;
 			}
+
+			public SymbolicRepresentation(string name, object meaning) : this(name, name.ToLowerInvariant(), meaning) { }
 
 			public bool MatchParameterName(string name)
 			{
@@ -160,7 +174,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				return this;
 			}
 
-			public SymbolicRepresentation Representation => inference?.Representation;
+			public ISymbolicRepresentation Representation => inference?.Representation;
 			public void SetRepresentation(SymbolicRepresentation representation, bool force = false)
 			{
 				if (inference is null)
