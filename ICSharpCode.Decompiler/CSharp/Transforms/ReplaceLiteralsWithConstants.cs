@@ -436,7 +436,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public ISymbolicValue Decode(PrimitiveExpression primitiveExpression)
 			{
-				if (primitiveExpression.Value is int intValue && intValue != 0)
+				if (primitiveExpression.Value is int intValue)
 					return Translate(intValue);
 				return null;
 			}
