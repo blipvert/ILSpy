@@ -490,20 +490,20 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public class InvocationMethod
 		{
-			public readonly IMethod method;
-			public readonly InvocationParameter[] parameters;
+			public readonly IMethod Method;
+			public readonly InvocationParameter[] Parameters;
 
 			public InvocationMethod(IMethod method)
 			{
 				if (method is null)
 					throw new ArgumentNullException(nameof(method));
-				this.method = method;
-				parameters = method.Parameters.Select(p => new InvocationParameter(p)).ToArray();
+				this.Method = method;
+				Parameters = method.Parameters.Select(p => new InvocationParameter(p)).ToArray();
 			}
 
 			public InvocationParameter GetParameter(int index)
 			{
-				return (index >= 0 && index < parameters.Length) ? parameters[index] : null;
+				return (index >= 0 && index < Parameters.Length) ? Parameters[index] : null;
 			}
 
 			public InvocationParameter GetParameter(int index, IReadOnlyList<int> mapper)
@@ -674,7 +674,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 						var invocationMethod = methodMap[method];
 						foreach (var (index, parameterDeclaration) in methodDeclaration.Parameters.WithIndex())
 						{
-							var invocationParameter = invocationMethod.parameters[index];
+							var invocationParameter = invocationMethod.Parameters[index];
 							invocationParameter.Variable = parameterDeclaration.GetILVariable();
 #if DEBUG_ANNOTATE_INVOCATIONS
 						parameterDeclaration.AddAnnotation(invocationParameter);
