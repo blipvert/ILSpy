@@ -795,10 +795,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitConditionalExpression(ConditionalExpression conditionalExpression, Analysis analysis)
 		{
-			VisitAstNode(conditionalExpression.TrueExpression, analysis);
-			VisitAstNode(conditionalExpression.FalseExpression, analysis);
+			VisitNode(conditionalExpression.TrueExpression, analysis);
+			VisitNode(conditionalExpression.FalseExpression, analysis);
 			analysis.DropSymbolicContext();
-			VisitAstNode(conditionalExpression.Condition, analysis);
+			VisitNode(conditionalExpression.Condition, analysis);
 			return default;
 		}
 
@@ -829,17 +829,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 								analysis.CurrentName(invocationParameter.Parameter.Name);
 							}
 						}
-						VisitAstNode(child, analysis);
+						VisitNode(child, analysis);
 					}
 				}
 			}
 			return default;
 		}
 
-		protected override int VisitAstNode(AstNode node, Analysis analysis)
+		protected override int VisitNode(AstNode node, Analysis analysis)
 		{
 			analysis.CurrentNode(node);
-			return base.VisitAstNode(node, analysis);
+			return base.VisitNode(node, analysis);
 		}
 
 		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, TransformContext context, BitValue bitValue)
