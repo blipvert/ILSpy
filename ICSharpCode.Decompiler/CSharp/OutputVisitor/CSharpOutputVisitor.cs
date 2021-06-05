@@ -26,7 +26,6 @@ using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.CSharp.Syntax.PatternMatching;
 using ICSharpCode.Decompiler.TypeSystem;
 using ICSharpCode.Decompiler.Util;
-using ICSharpCode.Decompiler.CSharp.Transforms;
 
 using Attribute = ICSharpCode.Decompiler.CSharp.Syntax.Attribute;
 
@@ -1126,12 +1125,6 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		public virtual void VisitPrimitiveExpression(PrimitiveExpression primitiveExpression)
 		{
 			StartNode(primitiveExpression);
-			var valueHint = primitiveExpression.Annotation<ISymbolicContext>()?.RepresentationString;
-			if (!string.IsNullOrEmpty(valueHint))
-			{
-				writer.WriteComment(CommentType.MultiLine, valueHint);
-			}
-
 			writer.WritePrimitiveValue(primitiveExpression.Value, primitiveExpression.Format);
 			isAfterSpace = false;
 			EndNode(primitiveExpression);
