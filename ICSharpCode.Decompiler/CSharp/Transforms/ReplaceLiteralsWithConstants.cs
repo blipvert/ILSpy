@@ -436,7 +436,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			public ISymbolicValue Decode(PrimitiveExpression primitiveExpression)
 			{
-				if (primitiveExpression.Value is int intValue)
+				if (primitiveExpression.Value is int intValue && intValue != 0)
 					return Translate(intValue);
 				return null;
 			}
@@ -843,39 +843,25 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			return base.VisitAstNode(node, analysis);
 		}
 
-		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, TransformContext context, BitValue bitValue)
-		{
-			primitiveExpression.ReplaceWith(bitValue.Express(context).CopyAnnotationsFrom(primitiveExpression));
-		}
-
-		private void ReplacePrimitiveWithSymbolic(PrimitiveExpression primitiveExpression, TransformContext context, Bitfield bitfield)
-		{
-			if ((primitiveExpression.Value is int intValue) && intValue != 0)
-			{
-				ReplacePrimitiveWithSymbolic(primitiveExpression, context, bitfield.Translate(intValue));
-			}
-		}
-
 		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, TransformContext context, BitValue bitValue)
 		{
 			foreach (var variable in fieldDeclaration.Variables)
 			{
 				if (variable.Initializer is PrimitiveExpression primitiveExpression)
-					ReplacePrimitiveWithSymbolic(primitiveExpression, context, bitValue);
+					primitiveExpression.Symbolicize(bitValue, context);
 			}
 		}
 
-		private void ReplacePrimitiveExpressions(AstNode node)
+		private void ReplacePrimitiveExpressions(AstNode rootNode)
 		{
-			foreach (var primitiveExpression in node.DescendantsAndSelf.OfType<PrimitiveExpression>())
+			foreach (var primitiveExpression in rootNode.DescendantsAndSelf.OfType<PrimitiveExpression>())
 			{
-				var symbolicContext = primitiveExpression.Annotation<SymbolicContext>();
+				var symbolicContext = primitiveExpression.GetSymbolicContext();
 				if (symbolicContext is not null)
 				{
-					if (symbolicContext.Representation?.Meaning is Bitfield symbolicBitfield)
-					{
-						ReplacePrimitiveWithSymbolic(primitiveExpression, symbolicContext.TransformContext, symbolicBitfield);
-					}
+					var symbolicRepresentation = symbolicContext.Representation;
+					if (symbolicRepresentation is not null)
+						primitiveExpression.Symbolicize(symbolicRepresentation.Meaning, symbolicContext.TransformContext);
 				}
 			}
 		}
@@ -1039,6 +1025,17 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public static IType GetEnclosingType(this AstNode node)
 		{
 			return node.GetEnclosing<TypeDeclaration>() as IType;
+		}
+
+		public static void Symbolicize(this PrimitiveExpression primitiveExpression, ISymbolicMeaning meaning, TransformContext context)
+		{
+			var value = meaning.Decode(primitiveExpression);
+			if (value is not null)
+				primitiveExpression.Symbolicize(value, context);
+		}
+		public static void Symbolicize(this PrimitiveExpression primitiveExpression, ISymbolicValue value, TransformContext context)
+		{
+			primitiveExpression.ReplaceWith(value.Express(context).CopyAnnotationsFrom(primitiveExpression));
 		}
 
 		public static Expression CreateMemberReference(this IMember member, TransformContext context)
