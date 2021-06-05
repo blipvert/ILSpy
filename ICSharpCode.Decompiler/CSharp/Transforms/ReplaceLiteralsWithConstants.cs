@@ -498,7 +498,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			public IMethod Method => method;
 			private readonly IMethod method;
-			public readonly InvocationParameter[] Parameters;
+			internal readonly InvocationParameter[] Parameters;
 
 			public InvocationMethod(IMethod method)
 			{
