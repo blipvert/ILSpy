@@ -192,11 +192,14 @@ namespace ICSharpCode.Decompiler.CSharp.OutputVisitor
 		{
 			if (symbolicContext != null)
 			{
-				WriteAttribute("Context", symbolicContext.ContextNumberString);
-				var representation = symbolicContext.RepresentationString;
+				string contextId = symbolicContext.ContextNumber.ToString();
+				if (symbolicContext.HasInference)
+					contextId += "/" + symbolicContext.InferenceNumber.ToString();
+				WriteAttribute("Context", contextId);
+				var representation = symbolicContext.Representation;
 				if (representation != null)
 				{
-					WriteAttribute("Representation", representation);
+					WriteAttribute("Representation", representation.Name);
 				}
 			}
 		}

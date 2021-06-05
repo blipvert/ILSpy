@@ -54,8 +54,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract TransformContext TransformContext { get; }
 
 		abstract ISymbolicRepresentation Representation { get; }
-		abstract string ContextNumberString { get; }
-		abstract string RepresentationString { get; }
 	}
 
 	public interface IInvocationParameter
@@ -157,15 +155,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			public int? InferenceNumber => inference?.InferenceNumber;
 			public bool HasInference => inference is not null;
 			public string ContextNumberString => HasInference ? $"{contextNumber}/{inference.InferenceNumber}" : contextNumber.ToString();
-			public string RepresentationString => Representation?.Name;
 
 			private string DebuggerDisplay {
 				get {
-					string representationName = RepresentationString;
-					if (representationName is null)
+					if (Representation is null)
 						return $"[Context {ContextNumberString}]";
 					else
-						return $"[Context {ContextNumberString} = {representationName}]";
+						return $"[Context {ContextNumberString} = {Representation.Name}]";
 				}
 			}
 
