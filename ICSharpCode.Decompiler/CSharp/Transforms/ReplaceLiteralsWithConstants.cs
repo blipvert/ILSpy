@@ -890,7 +890,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					var localScope = symbolicContext.LocalScope;
 					if (localScope is not null)
 					{
-						var prefix = symbolicContext.RepresentationString?.ToLowerInvariant();
+						var prefix = symbolicContext.Representation?.Prefix;
 						if (prefix is not null && variable.Name.StartsWith("num"))
 						{
 							variable.Name = localScope.AddPrefixedName(prefix);
