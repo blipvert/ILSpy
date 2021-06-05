@@ -56,6 +56,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract ISymbolicRepresentation Representation { get; }
 	}
 
+	public interface IInvocationMethod
+	{
+		IMethod Method { get; }
+		IInvocationParameter GetParameter(int index, IReadOnlyList<int> mapper = null);
+	}
+
 	public interface IInvocationParameter
 	{
 		abstract int UniqueId { get; }
@@ -488,37 +494,33 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 		}
 
-		public class InvocationMethod
+		public class InvocationMethod : IInvocationMethod
 		{
-			public readonly IMethod Method;
+			public IMethod Method => method;
+			private readonly IMethod method;
 			public readonly InvocationParameter[] Parameters;
 
 			public InvocationMethod(IMethod method)
 			{
 				if (method is null)
 					throw new ArgumentNullException(nameof(method));
-				this.Method = method;
+				this.method = method;
 				Parameters = method.Parameters.Select(p => new InvocationParameter(p)).ToArray();
 			}
 
-			public InvocationParameter GetParameter(int index)
-			{
-				return (index >= 0 && index < Parameters.Length) ? Parameters[index] : null;
-			}
-
-			public InvocationParameter GetParameter(int index, IReadOnlyList<int> mapper)
+			public IInvocationParameter GetParameter(int index, IReadOnlyList<int> mapper = null)
 			{
 				if (mapper is not null)
 					index = mapper[index];
-				return GetParameter(index);
+				return (index >= 0 && index < Parameters.Length) ? Parameters[index] : null;
 			}
 		}
 
-		public class MethodAutoMap : AutoInsertDictionary<IMethod, InvocationMethod>
+		public class MethodAutoMap : AutoInsertDictionary<IMethod, IInvocationMethod>
 		{
-			public override InvocationMethod NewValue(IMethod method)
+			public override IInvocationMethod NewValue(IMethod method)
 			{
-				return new(method);
+				return new InvocationMethod(method);
 			}
 		}
 		#endregion
@@ -671,15 +673,16 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				{
 					if (methodDeclaration.GetSymbol() is IMethod method)
 					{
-						var invocationMethod = methodMap[method];
+						var invocationMethod = new InvocationMethod(method);
 						foreach (var (index, parameterDeclaration) in methodDeclaration.Parameters.WithIndex())
 						{
 							var invocationParameter = invocationMethod.Parameters[index];
 							invocationParameter.Variable = parameterDeclaration.GetILVariable();
 #if DEBUG_ANNOTATE_INVOCATIONS
-						parameterDeclaration.AddAnnotation(invocationParameter);
+							parameterDeclaration.AddAnnotation(invocationParameter);
 #endif
 						}
+						methodMap.Add(method, invocationMethod);
 					}
 				}
 			}
