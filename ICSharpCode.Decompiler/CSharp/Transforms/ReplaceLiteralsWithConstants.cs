@@ -541,10 +541,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			internal void CurrentNode(AstNode node)
 			{
-				if ((node is TypeDeclaration || node is MethodDeclaration) && node.GetSymbol() is IEntity entity)
+				if (node is TypeDeclaration || node is MethodDeclaration)
 				{
-					transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun,
-						new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
+					if (node.GetSymbol() is IEntity entity)
+					{
+						transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun,
+							new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
+					}
+					CreateLocalScope();
 				}
 				MergeVariableInference(node.GetILVariable());
 				var symbolicContext = this.symbolicContext;
@@ -752,8 +756,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public override int VisitMethodDeclaration(MethodDeclaration methodDeclaration, Analysis analysis)
 		{
-			analysis.CreateLocalScope();
-
 			return base.VisitMethodDeclaration(methodDeclaration, analysis);
 		}
 
