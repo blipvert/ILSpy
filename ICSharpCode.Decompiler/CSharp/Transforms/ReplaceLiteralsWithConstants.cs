@@ -51,6 +51,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract int ContextNumber { get; }
 		abstract int? InferenceNumber { get; }
 		abstract bool HasInference { get; }
+		abstract TransformContext TransformContext { get; }
 
 		abstract ISymbolicRepresentation Representation { get; }
 		abstract string ContextNumberString { get; }
@@ -144,7 +145,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				}
 			}
 
-			public readonly TransformContext TransformContext;
+			private readonly TransformContext transformContext;
+
+			public TransformContext TransformContext => transformContext;
 			internal readonly LocalScope LocalScope;
 
 			private static int contextCount = 0;
@@ -168,7 +171,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			internal SymbolicContext(TransformContext transformContext, LocalScope localScope)
 			{
-				TransformContext = transformContext;
+				this.transformContext = transformContext;
 				LocalScope = localScope;
 				contextNumber = ++contextCount;
 			}
