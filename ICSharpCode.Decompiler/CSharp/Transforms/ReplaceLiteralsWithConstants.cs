@@ -463,7 +463,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		#endregion
 
 		#region InvocationMethod/InvocationParameter
-		public class InvocationParameter
+		public class InvocationParameter : IInvocationParameter
 		{
 			private static int counter = 0;
 			public int UniqueId => uniqueId;
