@@ -552,7 +552,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					CreateLocalScope();
 				}
 				MergeVariableInference(node.GetILVariable());
-				var symbolicContext = this.symbolicContext;
 
 				node.SaveContext(InheritsSymbolicContext(node) ? EnsureSymbolicContext() : DetachSymbolicContext());
 			}
