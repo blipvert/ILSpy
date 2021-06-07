@@ -46,6 +46,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		abstract ISymbolicMeaning Meaning { get; }
 	}
 
+	public interface ISymbolicInference
+	{
+		int InferenceNumber { get; }
+		ISymbolicRepresentation Representation { get; }
+	}
+
 	public interface ISymbolicContext
 	{
 		abstract int ContextNumber { get; }
@@ -111,7 +117,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					name.Equals(paramName2, StringComparison.OrdinalIgnoreCase);
 			}
 
-			public static SymbolicRepresentation Merge(SymbolicRepresentation rep1, SymbolicRepresentation rep2)
+			public static ISymbolicRepresentation Merge(ISymbolicRepresentation rep1, ISymbolicRepresentation rep2)
 			{
 				if (rep1 == rep2)
 					return rep1;
@@ -129,23 +135,30 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		[DebuggerDisplay("{DebuggerDisplay,nq}")]
 		public class SymbolicContext : ISymbolicContext
 		{
-			public class Inference
+			public class Inference : ISymbolicInference
 			{
 				private static int inferenceCount = 0;
-				public SymbolicRepresentation Representation;
-				public readonly int InferenceNumber;
+				public ISymbolicRepresentation Representation { get; private set; }
+				private readonly int inferenceNumber;
 
-				public Inference(SymbolicRepresentation representation)
+				public Inference(ISymbolicRepresentation representation)
 				{
 					Representation = representation;
-					InferenceNumber = ++inferenceCount;
+					inferenceNumber = ++inferenceCount;
 				}
 
 				public Inference() : this(null) { }
 
-				public void Merge(Inference other)
+				public int InferenceNumber => inferenceNumber;
+				internal void Merge(Inference other)
 				{
-					Representation = other.Representation = SymbolicRepresentation.Merge(Representation, other.Representation);
+					other.Merge(Representation);
+					Representation = other.Representation;
+				}
+
+				internal void Merge(ISymbolicRepresentation symbolicRepresentation)
+				{
+					Representation = SymbolicRepresentation.Merge(Representation, symbolicRepresentation);
 				}
 			}
 
@@ -190,14 +203,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			}
 
 			public ISymbolicRepresentation Representation => inference?.Representation;
-			public void SetRepresentation(SymbolicRepresentation representation, bool force = false)
+			public void SetRepresentation(SymbolicRepresentation representation)
 			{
 				if (inference is null)
 					inference = new(representation);
-				else if (inference.Representation == null || force)
-				{
-					inference.Representation = representation;
-				}
+				else
+					inference.Merge(representation);
 			}
 		}
 		#endregion
