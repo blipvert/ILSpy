@@ -527,7 +527,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		public struct Analysis
 		{
-			internal readonly InferenceEngine inferenceEngine;
+			private readonly InferenceEngine inferenceEngine;
 			internal TransformContext TransformContext { get; private set; }
 			private SymbolicContext symbolicContext;
 			private LocalScope localScope;
@@ -609,8 +609,18 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				if (variable is not null)
 				{
 					EnsureSymbolicContext();
-					symbolicContext.Merge(inferenceEngine.variableInferenceMap[variable]);
+					symbolicContext.Merge(inferenceEngine.GetVariableInference(variable));
 				}
+			}
+
+			internal ISymbolicValue GetSymbolicValue(IField field)
+			{
+				return inferenceEngine.GetSymbolicValue(field);
+			}
+
+			internal IInvocationMethod GetMethodInvocation(IMethod method)
+			{
+				return inferenceEngine.GetMethodInvocation(method);
 			}
 
 			private static bool InheritsSymbolicContext(AstNode node)
@@ -633,10 +643,10 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 		internal class InferenceEngine
 		{
-			internal readonly Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
-			internal readonly List<SymbolicRepresentation> symbolicRepresentationList = new();
-			internal readonly MethodAutoMap methodMap = new();
-			internal readonly AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
+			private readonly Dictionary<IField, NamedBitmask> namedBitmaskMap = new();
+			private readonly List<SymbolicRepresentation> symbolicRepresentationList = new();
+			private readonly MethodAutoMap methodMap = new();
+			private readonly AutoValueDictionary<ILVariable, SymbolicContext.Inference> variableInferenceMap = new();
 
 			public bool AddBitfield(string name, ITypeDefinition definingType, string maskPrefix, string bitPositionPrefix = null, int? bitLength = null)
 			{
@@ -697,6 +707,23 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 					}
 				}
 				return null;
+			}
+
+			internal ISymbolicValue GetSymbolicValue(IField field)
+			{
+				if (namedBitmaskMap.TryGetValue(field, out var bitmask))
+					return bitmask.Expansion;
+				return null;
+			}
+
+			internal IInvocationMethod GetMethodInvocation(IMethod method)
+			{
+				return methodMap[method];
+			}
+
+			internal SymbolicContext.Inference GetVariableInference(ILVariable variable)
+			{
+				return variableInferenceMap[variable];
 			}
 		}
 
@@ -778,9 +805,14 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public override int VisitFieldDeclaration(FieldDeclaration fieldDeclaration, Analysis analysis)
 		{
 			var field = fieldDeclaration.GetSymbol() as IField;
-			if (analysis.inferenceEngine.namedBitmaskMap.TryGetValue(field, out var bitmask))
+			var value = analysis.GetSymbolicValue(field);
+			if (value is not null)
 			{
-				ModifyFieldDeclaration(fieldDeclaration, analysis.TransformContext, bitmask.Expansion);
+				foreach (var variable in fieldDeclaration.Variables)
+				{
+					if (variable.Initializer is PrimitiveExpression primitiveExpression)
+						primitiveExpression.Symbolicize(value, analysis.TransformContext);
+				}
 			}
 
 			return base.VisitFieldDeclaration(fieldDeclaration, analysis);
@@ -810,7 +842,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			if (invocationExpression.GetSymbol() is IMethod method)
 			{
-				var invocationMethod = analysis.inferenceEngine.methodMap[method];
+				var invocationMethod = analysis.GetMethodInvocation(method);
 				var rr = invocationExpression.Annotation<CSharpInvocationResolveResult>();
 				if (rr != null)
 				{
@@ -839,15 +871,6 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		{
 			analysis.CurrentNode(node);
 			return base.VisitNode(node, analysis);
-		}
-
-		private void ModifyFieldDeclaration(FieldDeclaration fieldDeclaration, TransformContext context, BitValue bitValue)
-		{
-			foreach (var variable in fieldDeclaration.Variables)
-			{
-				if (variable.Initializer is PrimitiveExpression primitiveExpression)
-					primitiveExpression.Symbolicize(bitValue, context);
-			}
 		}
 
 		private void ReplacePrimitiveExpressions(AstNode rootNode)
