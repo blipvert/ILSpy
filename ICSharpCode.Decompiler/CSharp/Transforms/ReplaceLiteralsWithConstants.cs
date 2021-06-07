@@ -528,13 +528,13 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 		public struct Analysis
 		{
 			internal readonly InferenceEngine inferenceEngine;
-			internal TransformContext transformContext { get; private set; }
+			internal TransformContext TransformContext { get; private set; }
 			private SymbolicContext symbolicContext;
 			private LocalScope localScope;
 
 			internal Analysis(TransformContext transformContext, InferenceEngine inferenceEngine)
 			{
-				this.transformContext = transformContext;
+				TransformContext = transformContext;
 				this.inferenceEngine = inferenceEngine;
 				localScope = new();
 				symbolicContext = null;
@@ -546,8 +546,8 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 				{
 					if (node.GetSymbol() is IEntity entity)
 					{
-						transformContext = new(transformContext.TypeSystem, transformContext.DecompileRun,
-							new SimpleTypeResolveContext(entity), transformContext.TypeSystemAstBuilder);
+						TransformContext = new(TransformContext.TypeSystem, TransformContext.DecompileRun,
+							new SimpleTypeResolveContext(entity), TransformContext.TypeSystemAstBuilder);
 					}
 					CreateLocalScope();
 				}
@@ -584,7 +584,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 			private SymbolicContext CreateSymbolicContext()
 			{
-				return new(transformContext, localScope);
+				return new(TransformContext, localScope);
 			}
 
 			private SymbolicContext EnsureSymbolicContext()
@@ -780,7 +780,7 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 			var field = fieldDeclaration.GetSymbol() as IField;
 			if (analysis.inferenceEngine.namedBitmaskMap.TryGetValue(field, out var bitmask))
 			{
-				ModifyFieldDeclaration(fieldDeclaration, analysis.transformContext, bitmask.Expansion);
+				ModifyFieldDeclaration(fieldDeclaration, analysis.TransformContext, bitmask.Expansion);
 			}
 
 			return base.VisitFieldDeclaration(fieldDeclaration, analysis);
