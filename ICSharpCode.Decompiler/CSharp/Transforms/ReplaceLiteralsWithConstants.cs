@@ -41,9 +41,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 	public interface ISymbolicRepresentation
 	{
-		abstract string Name { get; }
-		abstract string Prefix { get; }
-		abstract ISymbolicMeaning Meaning { get; }
+		string Name { get; }
+		string Prefix { get; }
+		ISymbolicMeaning Meaning { get; }
 	}
 
 	public interface ISymbolicInference
@@ -54,12 +54,12 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 	public interface ISymbolicContext
 	{
-		abstract int ContextNumber { get; }
-		abstract int? InferenceNumber { get; }
-		abstract bool HasInference { get; }
-		abstract TransformContext TransformContext { get; }
+		int ContextNumber { get; }
+		int? InferenceNumber { get; }
+		bool HasInference { get; }
+		TransformContext TransformContext { get; }
 
-		abstract ISymbolicRepresentation Representation { get; }
+		ISymbolicRepresentation Representation { get; }
 	}
 
 	public interface IInvocationMethod
@@ -70,9 +70,9 @@ namespace ICSharpCode.Decompiler.CSharp.Transforms
 
 	public interface IInvocationParameter
 	{
-		abstract int UniqueId { get; }
-		abstract IParameter Parameter { get; }
-		abstract ILVariable Variable { get; }
+		int UniqueId { get; }
+		IParameter Parameter { get; }
+		ILVariable Variable { get; }
 	}
 
 	public class ReplaceLiteralsWithConstants : DepthFirstAstVisitor<ReplaceLiteralsWithConstants.Analysis, int>, IAstTransform
